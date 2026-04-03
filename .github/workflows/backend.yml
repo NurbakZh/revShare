@@ -3,10 +3,10 @@ name: Backend
 on:
   push:
     paths:
-      - 'backend/**'
+      - "backend/**"
   pull_request:
     paths:
-      - 'backend/**'
+      - "backend/**"
 
 jobs:
   build:
@@ -20,7 +20,7 @@ jobs:
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: "8.0.x"
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -48,7 +48,7 @@ jobs:
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: "8.0.x"
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
