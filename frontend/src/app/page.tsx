@@ -2,6 +2,14 @@
 
 import { BusinessCard } from '@/components/BusinessCard';
 import { GlassCard } from '@/components/GlassCard';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { mockBusinesses } from '@/lib/data';
 import { DollarSign, Filter, Search, Shield, TrendingUp } from 'lucide-react';
 import React, { useState } from 'react';
@@ -42,20 +50,20 @@ export default function Home() {
         });
 
     return (
-        <div className='container mx-auto space-y-8 px-4 py-8'>
+        <div className='container mx-auto px-4 py-8 '>
             {/* Hero Section */}
-            <div className='space-y-4 py-8 text-center'>
+            <div className='py-8 text-center'>
                 <h1 className='bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-5xl font-bold text-transparent md:text-6xl'>
                     Invest in Real Businesses
                 </h1>
-                <p className='mx-auto max-w-2xl text-xl text-muted-foreground'>
+                <p className='mx-auto mt-4 max-w-2xl text-xl text-muted-foreground'>
                     Buy revenue-sharing tokens from verified small businesses.
                     Earn monthly dividends on Solana.
                 </p>
             </div>
 
             {/* Stats */}
-            <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
+            <div className='mt-8 grid grid-cols-1 gap-6 md:grid-cols-3'>
                 <GlassCard className='p-6'>
                     <div className='flex items-center gap-4'>
                         <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-cyan-600'>
@@ -106,7 +114,7 @@ export default function Home() {
             </div>
 
             {/* Search and Filters */}
-            <GlassCard className='p-6'>
+            <GlassCard className='mt-8 p-6'>
                 <div className='grid grid-cols-1 gap-4 md:grid-cols-12'>
                     {/* Search */}
                     <div className='relative md:col-span-5'>
@@ -114,87 +122,74 @@ export default function Home() {
                             className='absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground'
                             size={20}
                         />
-                        <input
-                            type='text'
+                        <Input
                             placeholder='Search businesses...'
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className='w-full rounded-2xl border border-border bg-accent/50 py-3 pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50'
+                            className='pl-12'
                         />
                     </div>
 
                     {/* Category Filter */}
                     <div className='md:col-span-3'>
-                        <select
+                        <Select
                             value={selectedCategory}
-                            onChange={(e) =>
-                                setSelectedCategory(e.target.value)
-                            }
-                            className='w-full rounded-2xl border border-border bg-accent/50 px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50'
+                            onValueChange={setSelectedCategory}
                         >
-                            {categories.map((cat) => (
-                                <option
-                                    key={cat}
-                                    value={cat}
-                                    className='bg-background text-foreground'
-                                >
-                                    {cat}
-                                </option>
-                            ))}
-                        </select>
+                            <SelectTrigger>
+                                <SelectValue placeholder='Category' />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {categories.map((cat) => (
+                                    <SelectItem key={cat} value={cat}>
+                                        {cat}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     {/* Risk Filter */}
                     <div className='md:col-span-2'>
-                        <select
+                        <Select
                             value={selectedRisk}
-                            onChange={(e) => setSelectedRisk(e.target.value)}
-                            className='w-full rounded-2xl border border-border bg-accent/50 px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50'
+                            onValueChange={setSelectedRisk}
                         >
-                            {riskLevels.map((risk) => (
-                                <option
-                                    key={risk}
-                                    value={risk}
-                                    className='bg-background text-foreground'
-                                >
-                                    {risk} Risk
-                                </option>
-                            ))}
-                        </select>
+                            <SelectTrigger>
+                                <SelectValue placeholder='Risk' />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {riskLevels.map((risk) => (
+                                    <SelectItem key={risk} value={risk}>
+                                        {risk} Risk
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     {/* Sort */}
                     <div className='md:col-span-2'>
-                        <select
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value)}
-                            className='w-full rounded-2xl border border-border bg-accent/50 px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50'
-                        >
-                            <option
-                                value='apy'
-                                className='bg-background text-foreground'
-                            >
-                                Highest APY
-                            </option>
-                            <option
-                                value='funding'
-                                className='bg-background text-foreground'
-                            >
-                                Funding %
-                            </option>
-                            <option
-                                value='price'
-                                className='bg-background text-foreground'
-                            >
-                                Price: Low to High
-                            </option>
-                        </select>
+                        <Select value={sortBy} onValueChange={setSortBy}>
+                            <SelectTrigger>
+                                <SelectValue placeholder='Sort by' />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value='apy'>Highest APY</SelectItem>
+                                <SelectItem value='funding'>
+                                    Funding %
+                                </SelectItem>
+                                <SelectItem value='price'>
+                                    Price: Low to High
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
             </GlassCard>
 
             {/* Business Grid */}
-            <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
+            <div className='mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
                 {filteredBusinesses.map((business) => (
                     <BusinessCard key={business.id} business={business} />
                 ))}
@@ -204,7 +199,7 @@ export default function Home() {
                 <div className='py-16 text-center'>
                     <Filter
                         size={48}
-                        className='mx-auto mb-4 text-muted-foreground'
+                        className='mx-auto mb-4 text-muted-foreground opacity-20'
                     />
                     <p className='text-xl text-muted-foreground'>
                         No businesses found

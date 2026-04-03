@@ -1,10 +1,10 @@
 'use client';
 
-import { useThemeStore } from '@/lib/store';
+import { useAppStore } from '@/lib/store';
 import { useEffect } from 'react';
 
 export function ThemeWrapper({ children }: { children: React.ReactNode }) {
-    const { theme, fromSystem, setTheme } = useThemeStore();
+    const { theme, fromSystem } = useAppStore();
 
     useEffect(() => {
         const root = window.document.documentElement;
@@ -21,15 +21,6 @@ export function ThemeWrapper({ children }: { children: React.ReactNode }) {
                 ? 'dark'
                 : 'light';
             applyTheme(systemTheme);
-
-            const mediaQuery = window.matchMedia(
-                '(prefers-color-scheme: dark)',
-            );
-            const handleChange = (e: MediaQueryListEvent) => {
-                applyTheme(e.matches ? 'dark' : 'light');
-            };
-            mediaQuery.addEventListener('change', handleChange);
-            return () => mediaQuery.removeEventListener('change', handleChange);
         } else {
             applyTheme(theme);
         }
