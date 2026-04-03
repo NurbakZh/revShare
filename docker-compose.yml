@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: revshare-postgres
+    environment:
+      POSTGRES_DB: revshare
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  oracle:
+    build:
+      context: ./backend/src
+      dockerfile: Dockerfile
+    container_name: revshare-oracle
+    ports:
+      - "5000:5000"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5000
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=revshare;Username=postgres;Password=postgres
+      Solana__RpcUrl: https://api.devnet.solana.com
+      Solana__ProgramId: 2d7xANWdHiz3b8w5btAcWuzReufZXV1r8r4t6puDEygN
+      Solana__MinMonthlyRevenue: 50000
+      Solana__MaxMonthlyRevenue: 200000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  postgres_data:
