@@ -19,9 +19,9 @@ export function GlassCard({
             onClick={onClick}
             className={cn(
                 'rounded-3xl border backdrop-blur-xl transition-all duration-300',
-                'dark:border-white/10 dark:bg-white/5',
-                'border-gray-200/50 bg-white/60',
-                'shadow-xl dark:shadow-2xl dark:shadow-purple-500/5',
+                'dark:border-white/10 dark:bg-zinc-950/90',
+                'border-gray-200/50 bg-white/90',
+                'shadow-xl dark:shadow-2xl dark:shadow-purple-500/10',
                 variant === 'hover' &&
                     'hover:scale-[1.02] hover:shadow-2xl dark:hover:shadow-purple-500/20',
                 variant === 'bordered' &&

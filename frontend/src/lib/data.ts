@@ -16,6 +16,27 @@ export interface Business {
     targetRevenue: number;
 }
 
+export interface Investment {
+    id: string;
+    businessId: string;
+    businessName: string;
+    tokensOwned: number;
+    investmentValue: number;
+    monthlyEarnings: number;
+    totalEarned: number;
+    apy: number;
+}
+
+export interface MarketListing {
+    id: string;
+    businessId: string;
+    businessName: string;
+    seller: string;
+    pricePerToken: number;
+    tokensAvailable: number;
+    totalValue: number;
+}
+
 export const mockBusinesses: Business[] = [
     {
         id: '1',
@@ -137,5 +158,77 @@ export const mockBusinesses: Business[] = [
         owner: '8hJ4...cE5b',
         revenueSharePercent: 22,
         targetRevenue: 45000,
+    },
+];
+
+export const mockInvestments: Investment[] = [
+    {
+        id: '1',
+        businessId: '1',
+        businessName: 'Brew & Bytes Café',
+        tokensOwned: 250,
+        investmentValue: 12500,
+        monthlyEarnings: 425,
+        totalEarned: 5100,
+        apy: 18.5,
+    },
+    {
+        id: '2',
+        businessId: '2',
+        businessName: 'GreenLeaf Organics',
+        tokensOwned: 150,
+        investmentValue: 11250,
+        monthlyEarnings: 385,
+        totalEarned: 3850,
+        apy: 22.3,
+    },
+    {
+        id: '3',
+        businessId: '4',
+        businessName: 'TechRepair Pro',
+        tokensOwned: 100,
+        investmentValue: 10000,
+        monthlyEarnings: 520,
+        totalEarned: 4160,
+        apy: 28.7,
+    },
+];
+
+export const mockMarketListings: MarketListing[] = [
+    {
+        id: '1',
+        businessId: '1',
+        businessName: 'Brew & Bytes Café',
+        seller: '5hG8...kL9p',
+        pricePerToken: 55,
+        tokensAvailable: 100,
+        totalValue: 5500,
+    },
+    {
+        id: '2',
+        businessId: '2',
+        businessName: 'GreenLeaf Organics',
+        seller: '7jK2...mN4q',
+        pricePerToken: 82,
+        tokensAvailable: 50,
+        totalValue: 4100,
+    },
+    {
+        id: '3',
+        businessId: '3',
+        businessName: 'FitFlow Studios',
+        seller: '9mP5...rT8s',
+        pricePerToken: 45,
+        tokensAvailable: 200,
+        totalValue: 9000,
+    },
+    {
+        id: '4',
+        businessId: '4',
+        businessName: 'TechRepair Pro',
+        seller: '3aB7...vW1x',
+        pricePerToken: 110,
+        tokensAvailable: 75,
+        totalValue: 8250,
     },
 ];
