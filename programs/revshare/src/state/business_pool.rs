@@ -35,7 +35,7 @@ impl BusinessPool {
         + 8   // total_distributed
         + 1   // is_defaulted
         + 8   // raise_limit
-        + 1   // funds_released
+        + 8   // funds_released
         + 8   // target_revenue
         + 1;  // bump
 }
