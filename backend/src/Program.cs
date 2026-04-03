@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using oracle.Configuration;
 using oracle.Data;
+using oracle.Data.Repositories;
+using oracle.Data.Repositories.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +15,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.Configure<SolanaOptions>(
     builder.Configuration.GetSection(SolanaOptions.SectionName));
+
+builder.Services.AddScoped<IBusinessRepository, BusinessRepository>();
+builder.Services.AddScoped<IRevenueRepository, RevenueRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ITokenListingRepository, TokenListingRepository>();
 
 builder.Services.AddCors(options =>
 {
