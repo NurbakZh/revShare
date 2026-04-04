@@ -135,10 +135,15 @@ jobs:
           name: contract-artifacts
           path: target/
 
+      - name: Restore program keypair
+        run: |
+          mkdir -p target/deploy
+          echo '${{ secrets.PROGRAM_KEYPAIR }}' > target/deploy/revshare-keypair.json
+
       - name: Start local validator
         run: |
           solana-test-validator --reset --quiet &
-          sleep 5
+          sleep 10
 
       - name: Run tests
         run: anchor test --skip-local-validator
