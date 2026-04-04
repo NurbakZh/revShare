@@ -2,11 +2,13 @@
 
 import { useAppStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
+import { useWallet } from '@solana/wallet-adapter-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 export function HeaderNav() {
-    const { role, isConnected } = useAppStore();
+    const { role } = useAppStore();
+    const { connected } = useWallet();
     const pathname = usePathname();
 
     const links = [
@@ -17,7 +19,7 @@ export function HeaderNav() {
         },
     ];
 
-    if (isConnected) {
+    if (connected) {
         links.push({ name: 'Business', href: '/business' });
     }
 

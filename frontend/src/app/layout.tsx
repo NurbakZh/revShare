@@ -1,5 +1,6 @@
 import { Header } from '@/components/Header';
 import { ThemeWrapper } from '@/components/ThemeWrapper';
+import { SolanaProviders } from '@/lib/solana/SolanaProviders';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
@@ -21,13 +22,15 @@ export default function RootLayout({
             <body
                 className={`${inter.className} min-h-screen bg-background text-foreground transition-colors duration-300`}
             >
-                <ThemeWrapper>
-                    <div className='pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(120,0,255,0.05),transparent_50%)]' />
-                    <Header />
-                    <main className='relative min-h-[calc(100vh-80px)]'>
-                        {children}
-                    </main>
-                </ThemeWrapper>
+                <SolanaProviders>
+                    <ThemeWrapper>
+                        <div className='pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(120,0,255,0.05),transparent_50%)]' />
+                        <Header />
+                        <main className='relative min-h-[calc(100vh-80px)]'>
+                            {children}
+                        </main>
+                    </ThemeWrapper>
+                </SolanaProviders>
             </body>
         </html>
     );

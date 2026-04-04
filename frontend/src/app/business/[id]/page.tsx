@@ -1,13 +1,42 @@
-'use client';
+'use client'
 
-import { GlassCard } from '@/components/GlassCard';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { mockBusinesses } from '@/lib/data';
-import { ArrowLeft, Shield, TrendingUp } from 'lucide-react';
-import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import { GlassCard } from '@/components/GlassCard'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+    fetchBusiness,
+    fetchListingsForBusiness,
+    fetchRevenueHistory,
+} from '@/lib/api/oracle'
+import type { TokenListingDto } from '@/lib/api/types'
+import { profileToBusiness } from '@/lib/businessView'
+import type { Business } from '@/lib/data'
+import {
+    fetchBusinessPoolAccount,
+    fetchTokenListingAccount,
+    findEscrowTokenAccountForListing,
+    lamportsToSol,
+    setStoredInvestorTokenAccount,
+} from '@/lib/solana/helpers'
+import {
+    getHolderClaimPda,
+    getTokenMintPda,
+    getVaultPda,
+} from '@/lib/solana/pda'
+import { useRevshareProgram } from '@/lib/solana/useRevshareProgram'
+import { BN } from '@coral-xyz/anchor'
+import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
+import { useConnection, useWallet } from '@solana/wallet-adapter-react'
+import {
+    Keypair,
+    PublicKey,
+    SystemProgram,
+    SYSVAR_RENT_PUBKEY,
+} from '@solana/web3.js'
+import { ArrowLeft, Shield, TrendingUp } from 'lucide-react'
+import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
     CartesianGrid,
     Line,
@@ -16,75 +45,222 @@ import {
     Tooltip,
     XAxis,
     YAxis,
-} from 'recharts';
+} from 'recharts'
 
 export default function BusinessDetailsPage() {
-    const params = useParams();
-    const router = useRouter();
-    const [activeTab, setActiveTab] = useState('overview');
-    const [tokenAmount, setTokenAmount] = useState(10);
-    const [showBuyModal, setShowBuyModal] = useState(false);
+    const params = useParams()
+    const router = useRouter()
+    const pubkeyStr = params.id as string
+    const { connection } = useConnection()
+    const { publicKey } = useWallet()
+    const program = useRevshareProgram()
 
-    const business = mockBusinesses.find((b) => b.id === params.id);
+    const [activeTab, setActiveTab] = useState('overview')
+    const [tokenAmount, setTokenAmount] = useState(10)
+    const [showBuyModal, setShowBuyModal] = useState(false)
+    const [business, setBusiness] = useState<Business | null>(null)
+    const [listings, setListings] = useState<TokenListingDto[]>([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    const [txBusy, setTxBusy] = useState(false)
+    const [poolPk] = useState(() => new PublicKey(pubkeyStr))
 
-    if (!business) {
+    const load = useCallback(async () => {
+        setLoading(true)
+        setError(null)
+        const res = await fetchBusiness(pubkeyStr)
+        if (!res.success || !res.data) {
+            setError(res.error || 'Business not found')
+            setBusiness(null)
+            setLoading(false)
+            return
+        }
+        const pool = await fetchBusinessPoolAccount(connection, poolPk)
+        const hist = await fetchRevenueHistory(pubkeyStr)
+        const rev = hist.success && hist.data ? hist.data : undefined
+        setBusiness(profileToBusiness(res.data, pool, rev))
+        const ml = await fetchListingsForBusiness(pubkeyStr)
+        if (ml.success && ml.data) {
+            setListings(ml.data.filter((l) => l.status === 0))
+        } else {
+            setListings([])
+        }
+        setLoading(false)
+    }, [connection, poolPk, pubkeyStr])
+
+    useEffect(() => {
+        load()
+    }, [load])
+
+    if (loading) {
+        return (
+            <div className='container mx-auto px-4 py-16 text-center'>
+                <p className='text-muted-foreground'>Loading…</p>
+            </div>
+        )
+    }
+
+    if (error || !business) {
         return (
             <div className='container mx-auto px-4 py-16 text-center'>
                 <p className='text-xl text-muted-foreground'>
-                    Business not found
+                    {error || 'Business not found'}
                 </p>
                 <Button onClick={() => router.push('/')} className='mt-4'>
-                    Back to Marketplace
+                    Back home
                 </Button>
             </div>
-        );
+        )
     }
 
-    const chartData = business.monthlyRevenue.map((revenue, index) => ({
-        month: [
-            'Jan',
-            'Feb',
-            'Mar',
-            'Apr',
-            'May',
-            'Jun',
-            'Jul',
-            'Aug',
-            'Sep',
-            'Oct',
-            'Nov',
-            'Dec',
-        ][index],
-        revenue: revenue / 1000,
-    }));
+    const poolData = business.totalTokens > 0
 
-    const totalCost = tokenAmount * business.tokenPrice;
-    const estimatedMonthlyReturn = (totalCost * (business.apy / 100)) / 12;
+    const chartData = business.monthlyRevenue.map((revenue, index) => ({
+        month: `E${index + 1}`,
+        revenue,
+    }))
+
+    const maxBuy = Math.max(1, business.tokensLeft || 1)
+    const amountClamped = Math.min(tokenAmount, maxBuy)
+    const totalCostSol =
+        poolData && business.tokenPrice > 0
+            ? amountClamped * business.tokenPrice
+            : 0
+    const estMonthlySol =
+        poolData && business.totalTokens > 0
+            ? (business.targetRevenue *
+                  (business.revenueSharePercent / 100) *
+                  amountClamped) /
+              business.totalTokens /
+              12
+            : 0
+
+    async function executeBuy() {
+        if (!program || !publicKey || !poolData) return
+        setTxBusy(true)
+        try {
+            const businessPoolPda = poolPk
+            const poolAcc = await fetchBusinessPoolAccount(
+                connection,
+                businessPoolPda,
+            )
+            if (!poolAcc) throw new Error('Pool account missing')
+            const [tokenMintPda] = getTokenMintPda(businessPoolPda)
+            const [vaultPda] = getVaultPda(businessPoolPda)
+            const [holderClaimPda] = getHolderClaimPda(
+                businessPoolPda,
+                publicKey,
+            )
+            const tokenAccountKp = Keypair.generate()
+            const sig = await program.methods
+                .buyTokens(new BN(amountClamped))
+                .accounts({
+                    investor: publicKey,
+                    businessPool: businessPoolPda,
+                    tokenMint: tokenMintPda,
+                    holderClaim: holderClaimPda,
+                    investorTokenAccount: tokenAccountKp.publicKey,
+                    vault: vaultPda,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    systemProgram: SystemProgram.programId,
+                    rent: SYSVAR_RENT_PUBKEY,
+                })
+                .signers([tokenAccountKp])
+                .rpc()
+            setStoredInvestorTokenAccount(
+                businessPoolPda.toBase58(),
+                tokenAccountKp.publicKey.toBase58(),
+            )
+            setShowBuyModal(false)
+            await load()
+        } catch (e) {
+            setError(e instanceof Error ? e.message : 'Transaction failed')
+        } finally {
+            setTxBusy(false)
+        }
+    }
+
+    async function buyListing(row: TokenListingDto) {
+        if (!program || !publicKey) return
+        setTxBusy(true)
+        try {
+            const businessPoolPda = new PublicKey(row.businessPubkey)
+            const poolAcc = await fetchBusinessPoolAccount(
+                connection,
+                businessPoolPda,
+            )
+            if (!poolAcc) throw new Error('Pool not found')
+            const [tokenMintPda] = getTokenMintPda(businessPoolPda)
+            const listingPda = new PublicKey(row.listingPubkey)
+            const onChainListing = await fetchTokenListingAccount(
+                connection,
+                listingPda,
+            )
+            if (!onChainListing) throw new Error('Listing account missing')
+            const seller = onChainListing.seller
+            const escrow = await findEscrowTokenAccountForListing(
+                connection,
+                listingPda,
+                tokenMintPda,
+            )
+            if (!escrow) throw new Error('Escrow token account not found')
+            const [buyerClaimPda] = getHolderClaimPda(
+                businessPoolPda,
+                publicKey,
+            )
+            const buyerTokenKp = Keypair.generate()
+            const sig = await program.methods
+                .buyListedTokens()
+                .accounts({
+                    buyer: publicKey,
+                    businessPool: businessPoolPda,
+                    tokenMint: tokenMintPda,
+                    tokenListing: listingPda,
+                    seller,
+                    escrowTokenAccount: escrow,
+                    buyerClaim: buyerClaimPda,
+                    buyerTokenAccount: buyerTokenKp.publicKey,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    systemProgram: SystemProgram.programId,
+                    rent: SYSVAR_RENT_PUBKEY,
+                })
+                .signers([buyerTokenKp])
+                .rpc()
+            setStoredInvestorTokenAccount(
+                businessPoolPda.toBase58(),
+                buyerTokenKp.publicKey.toBase58(),
+            )
+            await load()
+        } catch (e) {
+            setError(e instanceof Error ? e.message : 'Buy failed')
+        } finally {
+            setTxBusy(false)
+        }
+    }
 
     return (
         <div className='container mx-auto px-4 py-8 '>
-            {/* Back Button */}
             <button
                 onClick={() => router.push('/')}
                 className='flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground'
             >
                 <ArrowLeft size={20} />
-                Back to Marketplace
+                Back
             </button>
 
-            {/* Hero Section */}
             <GlassCard className='mt-8 p-8'>
                 <div className='grid grid-cols-1 gap-8 lg:grid-cols-2'>
-                    {/* Left: Business Info */}
                     <div>
                         <div className='mb-6 flex items-center gap-4'>
-                            <div className='text-6xl'>{business.logo}</div>
+                            <div className='flex h-20 w-20 items-center justify-center rounded-2xl bg-accent text-3xl font-bold text-foreground'>
+                                {business.logo || '·'}
+                            </div>
                             <div>
                                 <h1 className='text-3xl font-bold text-foreground'>
                                     {business.name}
                                 </h1>
                                 <p className='text-muted-foreground'>
-                                    {business.category}
+                                    {business.category || '—'}
                                 </p>
                             </div>
                         </div>
@@ -103,7 +279,7 @@ export default function BusinessDetailsPage() {
                                     />
                                 </div>
                                 <p className='text-sm text-muted-foreground'>
-                                    Annual APY
+                                    Est. APY
                                 </p>
                             </div>
 
@@ -112,16 +288,18 @@ export default function BusinessDetailsPage() {
                                     {business.revenueSharePercent}%
                                 </div>
                                 <p className='text-sm text-muted-foreground'>
-                                    Revenue Share
+                                    Revenue share
                                 </p>
                             </div>
 
                             <div className='rounded-2xl border border-border bg-accent/5 p-4'>
                                 <div className='mb-1 text-2xl font-bold text-foreground'>
-                                    ${business.tokenPrice}
+                                    {business.tokenPrice > 0
+                                        ? `${business.tokenPrice} SOL`
+                                        : '—'}
                                 </div>
                                 <p className='text-sm text-muted-foreground'>
-                                    Token Price
+                                    Token price
                                 </p>
                             </div>
 
@@ -138,7 +316,7 @@ export default function BusinessDetailsPage() {
                                     {business.riskLevel}
                                 </div>
                                 <p className='text-sm text-muted-foreground'>
-                                    Risk Level
+                                    Risk
                                 </p>
                             </div>
                         </div>
@@ -146,7 +324,7 @@ export default function BusinessDetailsPage() {
                         <div className='space-y-4'>
                             <div>
                                 <div className='mb-2 flex justify-between text-sm text-muted-foreground'>
-                                    <span>Funding Progress</span>
+                                    <span>Funding</span>
                                     <span>{business.fundingProgress}%</span>
                                 </div>
                                 <div className='h-3 overflow-hidden rounded-full bg-accent/20'>
@@ -160,30 +338,26 @@ export default function BusinessDetailsPage() {
                                 <p className='mt-2 text-sm text-muted-foreground/60'>
                                     {business.tokensLeft.toLocaleString()} /{' '}
                                     {business.totalTokens.toLocaleString()}{' '}
-                                    tokens available
+                                    tokens left
                                 </p>
                             </div>
 
                             <div className='flex items-center gap-2 text-sm text-muted-foreground'>
                                 <Shield size={16} />
-                                <span>
-                                    Verified by RevShare • Owner:{' '}
-                                    {business.owner}
-                                </span>
+                                <span>Owner: {business.owner}</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Right: Purchase Card */}
                     <GlassCard variant='bordered' className='h-fit p-6'>
                         <h2 className='mb-6 text-xl font-bold text-foreground'>
-                            Purchase Tokens
+                            Purchase tokens
                         </h2>
 
                         <div className='space-y-6'>
                             <div>
                                 <label className='mb-2 block text-sm font-medium text-muted-foreground'>
-                                    Number of Tokens
+                                    Amount
                                 </label>
                                 <Input
                                     type='number'
@@ -192,21 +366,24 @@ export default function BusinessDetailsPage() {
                                         setTokenAmount(
                                             Math.max(
                                                 1,
-                                                parseInt(e.target.value) || 1,
+                                                parseInt(e.target.value, 10) ||
+                                                    1,
                                             ),
                                         )
                                     }
-                                    min='1'
-                                    max={business.tokensLeft}
+                                    min={1}
+                                    max={maxBuy}
                                 />
                                 <input
                                     type='range'
-                                    value={tokenAmount}
+                                    value={Math.min(amountClamped, maxBuy)}
                                     onChange={(e) =>
-                                        setTokenAmount(parseInt(e.target.value))
+                                        setTokenAmount(
+                                            parseInt(e.target.value, 10),
+                                        )
                                     }
-                                    min='1'
-                                    max={Math.min(100, business.tokensLeft)}
+                                    min={1}
+                                    max={maxBuy}
                                     className='mt-3 w-full accent-primary'
                                 />
                             </div>
@@ -214,27 +391,19 @@ export default function BusinessDetailsPage() {
                             <div className='space-y-3 rounded-2xl border border-border bg-accent/5 p-4'>
                                 <div className='flex justify-between'>
                                     <span className='text-muted-foreground'>
-                                        Price per token
+                                        Total (SOL)
                                     </span>
                                     <span className='font-semibold text-foreground'>
-                                        ${business.tokenPrice}
-                                    </span>
-                                </div>
-                                <div className='flex justify-between'>
-                                    <span className='text-muted-foreground'>
-                                        Total cost
-                                    </span>
-                                    <span className='font-semibold text-foreground'>
-                                        ${totalCost.toLocaleString()}
+                                        {totalCostSol.toFixed(6)}
                                     </span>
                                 </div>
                                 <div className='border-t border-border pt-3'>
                                     <div className='flex justify-between'>
                                         <span className='text-muted-foreground'>
-                                            Est. monthly return
+                                            Est. monthly (rough)
                                         </span>
                                         <span className='font-bold text-green-500'>
-                                            ${estimatedMonthlyReturn.toFixed(2)}
+                                            {estMonthlySol.toFixed(6)} SOL
                                         </span>
                                     </div>
                                 </div>
@@ -244,22 +413,27 @@ export default function BusinessDetailsPage() {
                                 variant='brand'
                                 size='lg'
                                 className='w-full'
+                                disabled={
+                                    !program ||
+                                    !publicKey ||
+                                    !poolData ||
+                                    txBusy
+                                }
                                 onClick={() => setShowBuyModal(true)}
                             >
-                                Buy {tokenAmount} Token
-                                {tokenAmount > 1 ? 's' : ''} for $
-                                {totalCost.toLocaleString()}
+                                Buy on-chain
                             </Button>
 
-                            <p className='text-center text-xs text-muted-foreground/60'>
-                                Transaction fee: ~0.00005 SOL
-                            </p>
+                            {!publicKey && (
+                                <p className='text-center text-xs text-muted-foreground'>
+                                    Connect wallet to buy
+                                </p>
+                            )}
                         </div>
                     </GlassCard>
                 </div>
             </GlassCard>
 
-            {/* Tabs / Dashboard */}
             <div className='mt-8 flex gap-4 border-b border-border'>
                 {['overview', 'revenue', 'marketplace'].map((tab) => (
                     <button
@@ -279,57 +453,21 @@ export default function BusinessDetailsPage() {
                 ))}
             </div>
 
-            {/* Tab Content */}
             {activeTab === 'overview' && (
                 <GlassCard className='p-8'>
                     <h2 className='mb-6 text-2xl font-bold text-foreground'>
-                        Business Overview
+                        Overview
                     </h2>
-                    <div className='space-y-6'>
-                        <div>
-                            <h3 className='mb-2 font-semibold text-foreground'>
-                                About
-                            </h3>
-                            <p className='text-muted-foreground'>
-                                {business.description} This business has been
-                                verified by RevShare and is actively generating
-                                revenue. Token holders receive monthly dividends
-                                based on the business performance.
-                            </p>
-                        </div>
-                        <div>
-                            <h3 className='mb-2 font-semibold text-foreground'>
-                                Revenue Model
-                            </h3>
-                            <p className='text-muted-foreground'>
-                                {business.revenueSharePercent}% of monthly
-                                revenue is distributed to token holders
-                                proportionally. Payments are made on the 1st of
-                                each month via smart contract.
-                            </p>
-                        </div>
-                        <div>
-                            <h3 className='mb-2 font-semibold text-foreground'>
-                                Target Metrics
-                            </h3>
-                            <p className='text-muted-foreground'>
-                                Target monthly revenue: $
-                                {business.targetRevenue.toLocaleString()}
-                                <br />
-                                Current monthly revenue: $
-                                {business.monthlyRevenue[
-                                    business.monthlyRevenue.length - 1
-                                ].toLocaleString()}
-                            </p>
-                        </div>
-                    </div>
+                    <p className='text-muted-foreground'>
+                        {business.description}
+                    </p>
                 </GlassCard>
             )}
 
             {activeTab === 'revenue' && (
                 <GlassCard className='p-8'>
                     <h2 className='mb-6 text-2xl font-bold text-foreground'>
-                        Revenue History
+                        Revenue history
                     </h2>
                     <div className='h-80 w-full'>
                         <ResponsiveContainer width='100%' height='100%'>
@@ -340,33 +478,14 @@ export default function BusinessDetailsPage() {
                                     className='text-border'
                                     opacity={0.1}
                                 />
-                                <XAxis
-                                    dataKey='month'
-                                    stroke='currentColor'
-                                    className='text-muted-foreground'
-                                    style={{ fontSize: '12px' }}
-                                />
-                                <YAxis
-                                    stroke='currentColor'
-                                    className='text-muted-foreground'
-                                    style={{ fontSize: '12px' }}
-                                    tickFormatter={(value) => `$${value}k`}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: 'var(--background)',
-                                        border: '1px solid var(--border)',
-                                        borderRadius: '12px',
-                                    }}
-                                    itemStyle={{ color: 'var(--foreground)' }}
-                                />
+                                <XAxis dataKey='month' />
+                                <YAxis tickFormatter={(v) => `${v} SOL`} />
+                                <Tooltip />
                                 <Line
                                     type='monotone'
                                     dataKey='revenue'
                                     stroke='#8B5CF6'
                                     strokeWidth={3}
-                                    dot={{ fill: '#8B5CF6', r: 4 }}
-                                    activeDot={{ r: 6 }}
                                 />
                             </LineChart>
                         </ResponsiveContainer>
@@ -377,22 +496,49 @@ export default function BusinessDetailsPage() {
             {activeTab === 'marketplace' && (
                 <GlassCard className='p-8'>
                     <h2 className='mb-6 text-2xl font-bold text-foreground'>
-                        Secondary Marketplace
+                        Listings for this business
                     </h2>
-                    <p className='text-muted-foreground'>
-                        No listings available for this business yet. Check the{' '}
-                        <Link
-                            href='/marketplace'
-                            className='text-primary hover:underline'
-                        >
-                            main marketplace
-                        </Link>{' '}
-                        for other opportunities.
-                    </p>
+                    {listings.length === 0 ? (
+                        <p className='text-muted-foreground'>
+                            No active listings. See{' '}
+                            <Link href='/marketplace' className='text-primary'>
+                                global marketplace
+                            </Link>
+                            .
+                        </p>
+                    ) : (
+                        <ul className='space-y-4'>
+                            {listings.map((l) => (
+                                <li
+                                    key={l.id}
+                                    className='flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border p-4'
+                                >
+                                    <div>
+                                        <p className='font-mono text-sm text-muted-foreground'>
+                                            {l.sellerPubkey.slice(0, 8)}…
+                                        </p>
+                                        <p className='text-foreground'>
+                                            {l.amount} tokens @{' '}
+                                            {lamportsToSol(l.pricePerToken)} SOL
+                                        </p>
+                                    </div>
+                                    <Button
+                                        variant='brand'
+                                        size='sm'
+                                        disabled={
+                                            !program || !publicKey || txBusy
+                                        }
+                                        onClick={() => buyListing(l)}
+                                    >
+                                        Buy
+                                    </Button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </GlassCard>
             )}
 
-            {/* Buy Modal */}
             {showBuyModal && (
                 <div
                     className='m-0! fixed bottom-0 left-0 right-0 top-0 z-[99999] flex items-center justify-center overflow-y-auto bg-black/75 p-4 backdrop-blur-lg duration-300 animate-in fade-in'
@@ -404,42 +550,20 @@ export default function BusinessDetailsPage() {
                     >
                         <GlassCard className='p-8'>
                             <h2 className='mb-4 text-2xl font-bold text-foreground'>
-                                Confirm Purchase
+                                Confirm purchase
                             </h2>
                             <div className='mb-6 space-y-4'>
                                 <div className='flex justify-between'>
                                     <span className='text-muted-foreground'>
-                                        Business
-                                    </span>
-                                    <span className='font-semibold text-foreground'>
-                                        {business.name}
-                                    </span>
-                                </div>
-                                <div className='flex justify-between'>
-                                    <span className='text-muted-foreground'>
                                         Tokens
                                     </span>
-                                    <span className='font-semibold text-foreground'>
-                                        {tokenAmount}
-                                    </span>
+                                    <span>{amountClamped}</span>
                                 </div>
                                 <div className='flex justify-between'>
                                     <span className='text-muted-foreground'>
-                                        Total Cost
+                                        Total SOL
                                     </span>
-                                    <span className='font-semibold text-foreground'>
-                                        ${totalCost.toLocaleString()}
-                                    </span>
-                                </div>
-                                <div className='border-t border-border pt-4'>
-                                    <div className='flex justify-between'>
-                                        <span className='text-muted-foreground'>
-                                            Est. Monthly Return
-                                        </span>
-                                        <span className='font-bold text-green-500'>
-                                            ${estimatedMonthlyReturn.toFixed(2)}
-                                        </span>
-                                    </div>
+                                    <span>{totalCostSol.toFixed(6)}</span>
                                 </div>
                             </div>
                             <div className='flex gap-3'>
@@ -452,12 +576,11 @@ export default function BusinessDetailsPage() {
                                 </Button>
                                 <Button
                                     variant='brand'
-                                    className='flex-1 bg-gradient-to-r from-purple-600 to-cyan-600 transition-all hover:shadow-lg hover:shadow-purple-500/30 active:scale-95'
-                                    onClick={() => {
-                                        setShowBuyModal(false);
-                                    }}
+                                    className='flex-1'
+                                    disabled={txBusy}
+                                    onClick={() => executeBuy()}
                                 >
-                                    Confirm
+                                    {txBusy ? 'Signing…' : 'Confirm'}
                                 </Button>
                             </div>
                         </GlassCard>
@@ -465,5 +588,5 @@ export default function BusinessDetailsPage() {
                 </div>
             )}
         </div>
-    );
+    )
 }

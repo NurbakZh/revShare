@@ -1,57 +1,103 @@
-'use client';
+'use client'
 
-import { BusinessCard } from '@/components/BusinessCard';
-import { GlassCard } from '@/components/GlassCard';
-import { Input } from '@/components/ui/input';
+import { BusinessCard } from '@/components/BusinessCard'
+import { GlassCard } from '@/components/GlassCard'
+import { Input } from '@/components/ui/input'
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from '@/components/ui/select';
-import { mockBusinesses } from '@/lib/data';
-import { DollarSign, Filter, Search, Shield, TrendingUp } from 'lucide-react';
-import React, { useState } from 'react';
+} from '@/components/ui/select'
+import { fetchBusinesses } from '@/lib/api/oracle'
+import { profileToBusiness } from '@/lib/businessView'
+import type { Business } from '@/lib/data'
+import { fetchBusinessPoolAccount } from '@/lib/solana/helpers'
+import { DollarSign, Filter, Search, Shield, TrendingUp } from 'lucide-react'
+import { useConnection } from '@solana/wallet-adapter-react'
+import { PublicKey } from '@solana/web3.js'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
 export default function Home() {
-    const [searchQuery, setSearchQuery] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('All');
-    const [selectedRisk, setSelectedRisk] = useState('All');
-    const [sortBy, setSortBy] = useState('apy');
+    const { connection } = useConnection()
+    const [searchQuery, setSearchQuery] = useState('')
+    const [selectedCategory, setSelectedCategory] = useState('All')
+    const [selectedRisk, setSelectedRisk] = useState('All')
+    const [sortBy, setSortBy] = useState('apy')
+    const [businesses, setBusinesses] = useState<Business[]>([])
+    const [loading, setLoading] = useState(true)
+    const [apiError, setApiError] = useState<string | null>(null)
 
-    const categories = [
-        'All',
-        'Food & Beverage',
-        'Technology',
-        'Health & Wellness',
-        'Pet Services',
-        'Food & Delivery',
-    ];
-    const riskLevels = ['All', 'Low', 'Medium', 'High'];
+    const load = useCallback(async () => {
+        setLoading(true)
+        setApiError(null)
+        const res = await fetchBusinesses()
+        if (!res.success) {
+            setApiError(res.error || 'Request failed')
+            setBusinesses([])
+            setLoading(false)
+            return
+        }
 
-    const filteredBusinesses = mockBusinesses
+        const list = res.data ?? []
+        const merged: Business[] = []
+        for (const p of list) {
+            let pool = null
+            try {
+                pool = await fetchBusinessPoolAccount(
+                    connection,
+                    new PublicKey(p.pubkey),
+                )
+            } catch {
+                pool = null
+            }
+            merged.push(profileToBusiness(p, pool))
+        }
+        setBusinesses(merged)
+        setLoading(false)
+    }, [connection])
+
+    useEffect(() => {
+        load()
+    }, [load])
+
+    const categories = useMemo(() => {
+        const s = new Set<string>()
+        businesses.forEach((b) => s.add(b.category))
+        return ['All', ...Array.from(s).sort()]
+    }, [businesses])
+
+    const riskLevels = ['All', 'Low', 'Medium', 'High']
+
+    const filteredBusinesses = businesses
         .filter((b) => {
             const matchesSearch =
                 b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                b.description.toLowerCase().includes(searchQuery.toLowerCase());
+                b.description.toLowerCase().includes(searchQuery.toLowerCase())
             const matchesCategory =
-                selectedCategory === 'All' || b.category === selectedCategory;
+                selectedCategory === 'All' || b.category === selectedCategory
             const matchesRisk =
-                selectedRisk === 'All' || b.riskLevel === selectedRisk;
-            return matchesSearch && matchesCategory && matchesRisk;
+                selectedRisk === 'All' || b.riskLevel === selectedRisk
+            return matchesSearch && matchesCategory && matchesRisk
         })
         .sort((a, b) => {
-            if (sortBy === 'apy') return b.apy - a.apy;
+            if (sortBy === 'apy') return b.apy - a.apy
             if (sortBy === 'funding')
-                return b.fundingProgress - a.fundingProgress;
-            if (sortBy === 'price') return a.tokenPrice - b.tokenPrice;
-            return 0;
-        });
+                return b.fundingProgress - a.fundingProgress
+            if (sortBy === 'price') return a.tokenPrice - b.tokenPrice
+            return 0
+        })
+
+    const count = businesses.length
+    const avgApy =
+        count > 0
+            ? businesses.reduce((s, b) => s + b.apy, 0) / count
+            : 0
+    const withOnChainPool = businesses.filter((b) => b.totalTokens > 0).length
 
     return (
         <div className='container mx-auto px-4 py-8 '>
-            {/* Hero Section */}
             <div className='py-8 text-center'>
                 <h1 className='bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-5xl font-bold text-transparent md:text-6xl'>
                     Invest in Real Businesses
@@ -62,7 +108,12 @@ export default function Home() {
                 </p>
             </div>
 
-            {/* Stats */}
+            {apiError && (
+                <p className='mb-4 text-center text-sm text-amber-600 dark:text-amber-400'>
+                    {apiError}
+                </p>
+            )}
+
             <div className='mt-8 grid grid-cols-1 gap-6 md:grid-cols-3'>
                 <GlassCard className='p-6'>
                     <div className='flex items-center gap-4'>
@@ -71,10 +122,10 @@ export default function Home() {
                         </div>
                         <div>
                             <div className='text-2xl font-bold text-foreground'>
-                                $2.4M
+                                {loading ? '…' : count}
                             </div>
                             <p className='text-sm text-muted-foreground'>
-                                Total Invested
+                                Businesses
                             </p>
                         </div>
                     </div>
@@ -87,7 +138,7 @@ export default function Home() {
                         </div>
                         <div>
                             <div className='text-2xl font-bold text-foreground'>
-                                18.5%
+                                {avgApy > 0 ? `${avgApy.toFixed(1)}%` : '—'}
                             </div>
                             <p className='text-sm text-muted-foreground'>
                                 Avg APY
@@ -103,20 +154,18 @@ export default function Home() {
                         </div>
                         <div>
                             <div className='text-2xl font-bold text-foreground'>
-                                42
+                                {loading ? '…' : withOnChainPool}
                             </div>
                             <p className='text-sm text-muted-foreground'>
-                                Active Businesses
+                                With pool on RPC
                             </p>
                         </div>
                     </div>
                 </GlassCard>
             </div>
 
-            {/* Search and Filters */}
             <GlassCard className='mt-8 p-6'>
                 <div className='grid grid-cols-1 gap-4 md:grid-cols-12'>
-                    {/* Search */}
                     <div className='relative md:col-span-5'>
                         <Search
                             className='absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground'
@@ -130,7 +179,6 @@ export default function Home() {
                         />
                     </div>
 
-                    {/* Category Filter */}
                     <div className='md:col-span-3'>
                         <Select
                             value={selectedCategory}
@@ -149,7 +197,6 @@ export default function Home() {
                         </Select>
                     </div>
 
-                    {/* Risk Filter */}
                     <div className='md:col-span-2'>
                         <Select
                             value={selectedRisk}
@@ -168,7 +215,6 @@ export default function Home() {
                         </Select>
                     </div>
 
-                    {/* Sort */}
                     <div className='md:col-span-2'>
                         <Select value={sortBy} onValueChange={setSortBy}>
                             <SelectTrigger>
@@ -188,27 +234,25 @@ export default function Home() {
                 </div>
             </GlassCard>
 
-            {/* Business Grid */}
             <div className='mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
                 {filteredBusinesses.map((business) => (
                     <BusinessCard key={business.id} business={business} />
                 ))}
             </div>
 
-            {filteredBusinesses.length === 0 && (
+            {!loading && filteredBusinesses.length === 0 && (
                 <div className='py-16 text-center'>
                     <Filter
                         size={48}
                         className='mx-auto mb-4 text-muted-foreground opacity-20'
                     />
                     <p className='text-xl text-muted-foreground'>
-                        No businesses found
-                    </p>
-                    <p className='text-muted-foreground/60'>
-                        Try adjusting your filters
+                        {businesses.length === 0
+                            ? 'No businesses from API'
+                            : 'Nothing matches filters'}
                     </p>
                 </div>
             )}
         </div>
-    );
+    )
 }

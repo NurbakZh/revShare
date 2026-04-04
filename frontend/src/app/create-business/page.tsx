@@ -1,57 +1,144 @@
-'use client';
+'use client'
 
-import { GlassCard } from '@/components/GlassCard';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { GlassCard } from '@/components/GlassCard'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { fetchHealth, registerBusiness } from '@/lib/api/oracle'
+import { useAppStore } from '@/lib/store'
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { ArrowLeft, Building2, Check } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+    getBusinessPoolPda,
+    getTokenMintPda,
+    getVaultPda,
+} from '@/lib/solana/pda'
+import { useRevshareProgram } from '@/lib/solana/useRevshareProgram'
+import { BN } from '@coral-xyz/anchor'
+import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
+import { useWallet } from '@solana/wallet-adapter-react'
+import {
+    PublicKey,
+    SystemProgram,
+    SYSVAR_RENT_PUBKEY,
+} from '@solana/web3.js'
+import { ArrowLeft, Building2, Check } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import React, { useState } from 'react'
+
+const LAMPORTS_PER_SOL = 1_000_000_000
 
 export default function CreateBusinessPage() {
-    const router = useRouter();
-    const [step, setStep] = useState(1);
+    const router = useRouter()
+    const { publicKey } = useWallet()
+    const program = useRevshareProgram()
+    const { setHasBusiness } = useAppStore()
+    const [step, setStep] = useState(1)
+    const [busy, setBusy] = useState(false)
+    const [err, setErr] = useState<string | null>(null)
     const [formData, setFormData] = useState({
         name: '',
         description: '',
-        category: '',
+        city: '',
         tokenSupply: '',
-        tokenPrice: '',
+        tokenPriceSol: '',
         revenueShare: '',
-        targetRevenue: '',
-    });
-
-    const categories = [
-        'Food & Beverage',
-        'Technology',
-        'Health & Wellness',
-        'Retail',
-        'Services',
-        'Entertainment',
-        'Other',
-    ];
-
-    const handleSubmit = () => {
-        router.push('/business');
-    };
+        targetRevenueSol: '',
+    })
 
     const isStep1Valid =
-        formData.name && formData.description && formData.category;
+        formData.name && formData.description && formData.city.trim()
     const isStep2Valid =
         formData.tokenSupply &&
-        formData.tokenPrice &&
+        formData.tokenPriceSol &&
         formData.revenueShare &&
-        formData.targetRevenue;
+        formData.targetRevenueSol
+
+    async function handleSubmit() {
+        setErr(null)
+        if (!publicKey || !program) {
+            setErr('Connect wallet first')
+            return
+        }
+        const totalTokens = parseInt(formData.tokenSupply, 10)
+        const tokenPriceLamports = Math.round(
+            parseFloat(formData.tokenPriceSol) * LAMPORTS_PER_SOL,
+        )
+        const raiseLimit = totalTokens * tokenPriceLamports
+        const minCollateral = Math.floor((raiseLimit * 30) / 100)
+        const collateralAmount = Math.max(
+            Math.floor(0.5 * LAMPORTS_PER_SOL),
+            minCollateral,
+        )
+        const targetRevenueLamports = Math.round(
+            parseFloat(formData.targetRevenueSol) * LAMPORTS_PER_SOL,
+        )
+        const revenueShareBps = Math.min(
+            5000,
+            Math.round(parseFloat(formData.revenueShare) * 100),
+        )
+
+        const health = await fetchHealth()
+        if (!health.success || !health.data?.oraclePublicKey) {
+            setErr(health.error || 'Oracle /health unavailable')
+            return
+        }
+
+        setBusy(true)
+        try {
+            const oracleAuthority = new PublicKey(
+                health.data.oraclePublicKey,
+            )
+            const [businessPoolPda] = getBusinessPoolPda(publicKey, 0)
+            const [tokenMintPda] = getTokenMintPda(businessPoolPda)
+            const [vaultPda] = getVaultPda(businessPoolPda)
+
+            await program.methods
+                .initializeBusiness({
+                    id: new BN(0),
+                    totalTokens: new BN(totalTokens),
+                    tokenPrice: new BN(tokenPriceLamports),
+                    revenueShareBps,
+                    collateralAmount: new BN(collateralAmount),
+                    raiseLimit: new BN(raiseLimit),
+                    targetRevenue: new BN(targetRevenueLamports),
+                    oracleAuthority,
+                })
+                .accounts({
+                    owner: publicKey,
+                    businessPool: businessPoolPda,
+                    tokenMint: tokenMintPda,
+                    vault: vaultPda,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    systemProgram: SystemProgram.programId,
+                    rent: SYSVAR_RENT_PUBKEY,
+                })
+                .rpc()
+
+            const reg = await registerBusiness({
+                pubkey: businessPoolPda.toBase58(),
+                ownerPubkey: publicKey.toBase58(),
+                name: formData.name,
+                description: formData.description,
+                city: formData.city.trim(),
+                raiseLimit,
+                targetRevenue: targetRevenueLamports,
+            })
+            if (!reg.success) {
+                setErr(reg.error || 'Register failed after deploy')
+            } else {
+                setHasBusiness(true)
+                router.push(`/business/${businessPoolPda.toBase58()}`)
+            }
+        } catch (e) {
+            setErr(e instanceof Error ? e.message : 'Transaction failed')
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    const supply = parseInt(formData.tokenSupply, 10) || 0
+    const priceSol = parseFloat(formData.tokenPriceSol) || 0
 
     return (
         <div className='container mx-auto max-w-3xl px-4  py-8'>
-            {/* Back Button */}
             <button
                 onClick={() => router.push('/profile')}
                 className='flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground'
@@ -60,20 +147,18 @@ export default function CreateBusinessPage() {
                 Back to Profile
             </button>
 
-            {/* Header */}
             <div className='mt-8 text-center'>
                 <div className='mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-cyan-600 shadow-lg shadow-purple-500/20'>
                     <Building2 className='text-white' size={36} />
                 </div>
                 <h1 className='mb-2 text-4xl font-bold text-foreground'>
-                    Create Business Account
+                    Create business pool
                 </h1>
                 <p className='text-muted-foreground'>
-                    Register your business to raise funds on RevShare
+                    On-chain pool + Oracle register
                 </p>
             </div>
 
-            {/* Progress Steps */}
             <div className='mt-8 flex items-center justify-center gap-4'>
                 <div className='flex items-center gap-2'>
                     <div
@@ -88,12 +173,10 @@ export default function CreateBusinessPage() {
                     <span
                         className={`text-sm font-medium ${step >= 1 ? 'text-foreground' : 'text-muted-foreground'}`}
                     >
-                        Business Info
+                        Business info
                     </span>
                 </div>
-
                 <div className='h-0.5 w-16 bg-border' />
-
                 <div className='flex items-center gap-2'>
                     <div
                         className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
@@ -107,22 +190,24 @@ export default function CreateBusinessPage() {
                     <span
                         className={`text-sm font-medium ${step >= 2 ? 'text-foreground' : 'text-muted-foreground'}`}
                     >
-                        Token Details
+                        Token details
                     </span>
                 </div>
             </div>
 
-            {/* Form */}
+            {err && (
+                <p className='mt-4 text-center text-sm text-red-500'>{err}</p>
+            )}
+
             <GlassCard className='mt-8 p-8'>
                 {step === 1 && (
                     <div>
                         <h2 className='mb-6 text-2xl font-bold text-foreground'>
-                            Business Information
+                            Business information
                         </h2>
-
                         <div className='mt-6'>
                             <label className='mb-2 block text-sm font-medium text-muted-foreground'>
-                                Business Name *
+                                Name *
                             </label>
                             <Input
                                 placeholder='e.g., Brew & Bytes Café'
@@ -135,13 +220,12 @@ export default function CreateBusinessPage() {
                                 }
                             />
                         </div>
-
                         <div className='mt-6'>
                             <label className='mb-2 block text-sm font-medium text-muted-foreground'>
                                 Description *
                             </label>
                             <textarea
-                                placeholder='Describe your business, what you do, and your vision...'
+                                placeholder='What you do…'
                                 value={formData.description}
                                 onChange={(e) =>
                                     setFormData({
@@ -153,30 +237,21 @@ export default function CreateBusinessPage() {
                                 className='w-full resize-none rounded-2xl border border-input bg-background px-4 py-3 text-foreground transition-all placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 dark:bg-accent/20'
                             />
                         </div>
-
                         <div className='mt-6'>
                             <label className='mb-2 block text-sm font-medium text-muted-foreground'>
-                                Category *
+                                City *
                             </label>
-                            <Select
-                                value={formData.category}
-                                onValueChange={(v: string) =>
-                                    setFormData({ ...formData, category: v })
+                            <Input
+                                placeholder='e.g., Astana'
+                                value={formData.city}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        city: e.target.value,
+                                    })
                                 }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder='Select a category' />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {categories.map((cat) => (
-                                        <SelectItem key={cat} value={cat}>
-                                            {cat}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            />
                         </div>
-
                         <div className='mt-8 flex justify-end'>
                             <Button
                                 variant='brand'
@@ -184,7 +259,7 @@ export default function CreateBusinessPage() {
                                 onClick={() => setStep(2)}
                                 disabled={!isStep1Valid}
                             >
-                                Continue to Token Details
+                                Continue
                             </Button>
                         </div>
                     </div>
@@ -193,17 +268,16 @@ export default function CreateBusinessPage() {
                 {step === 2 && (
                     <div className='space-y-6'>
                         <h2 className='mb-6 text-2xl font-bold text-foreground'>
-                            Token Configuration
+                            Token configuration (SOL)
                         </h2>
-
                         <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
                             <div>
                                 <label className='mb-2 block text-sm font-medium text-muted-foreground'>
-                                    Total Token Supply *
+                                    Total token supply *
                                 </label>
                                 <Input
                                     type='number'
-                                    placeholder='e.g., 10000'
+                                    placeholder='1000'
                                     value={formData.tokenSupply}
                                     onChange={(e) =>
                                         setFormData({
@@ -212,42 +286,35 @@ export default function CreateBusinessPage() {
                                         })
                                     }
                                 />
-                                <p className='mt-1 text-xs text-muted-foreground/60'>
-                                    Number of tokens to create
-                                </p>
                             </div>
-
                             <div>
                                 <label className='mb-2 block text-sm font-medium text-muted-foreground'>
-                                    Token Price ($) *
+                                    Token price (SOL) *
                                 </label>
                                 <Input
                                     type='number'
-                                    placeholder='e.g., 50'
-                                    value={formData.tokenPrice}
+                                    step='0.000001'
+                                    placeholder='0.001'
+                                    value={formData.tokenPriceSol}
                                     onChange={(e) =>
                                         setFormData({
                                             ...formData,
-                                            tokenPrice: e.target.value,
+                                            tokenPriceSol: e.target.value,
                                         })
                                     }
                                 />
-                                <p className='mt-1 text-xs text-muted-foreground/60'>
-                                    Price per token in USD
-                                </p>
                             </div>
                         </div>
-
                         <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
                             <div>
                                 <label className='mb-2 block text-sm font-medium text-muted-foreground'>
-                                    Revenue Share (%) *
+                                    Revenue share (%) * (max 50%)
                                 </label>
                                 <Input
                                     type='number'
-                                    placeholder='e.g., 20'
+                                    placeholder='10'
                                     min='1'
-                                    max='100'
+                                    max='50'
                                     value={formData.revenueShare}
                                     onChange={(e) =>
                                         setFormData({
@@ -256,81 +323,38 @@ export default function CreateBusinessPage() {
                                         })
                                     }
                                 />
-                                <p className='mt-1 text-xs text-muted-foreground/60'>
-                                    % of revenue shared with token holders
-                                </p>
                             </div>
-
                             <div>
                                 <label className='mb-2 block text-sm font-medium text-muted-foreground'>
-                                    Target Monthly Revenue ($) *
+                                    Target monthly revenue (SOL) *
                                 </label>
                                 <Input
                                     type='number'
-                                    placeholder='e.g., 100000'
-                                    value={formData.targetRevenue}
+                                    step='0.01'
+                                    placeholder='2'
+                                    value={formData.targetRevenueSol}
                                     onChange={(e) =>
                                         setFormData({
                                             ...formData,
-                                            targetRevenue: e.target.value,
+                                            targetRevenueSol: e.target.value,
                                         })
                                     }
                                 />
-                                <p className='mt-1 text-xs text-muted-foreground/60'>
-                                    Revenue goal for milestone unlocks
-                                </p>
                             </div>
                         </div>
 
-                        {formData.tokenSupply && formData.tokenPrice && (
-                            <GlassCard
-                                variant='bordered'
-                                className='bg-primary/5 p-6'
-                            >
+                        {supply > 0 && priceSol > 0 && (
+                            <GlassCard variant='bordered' className='bg-primary/5 p-6'>
                                 <h3 className='mb-4 font-semibold text-foreground'>
-                                    Funding Summary
+                                    Raise cap
                                 </h3>
-                                <div className='space-y-3'>
-                                    <div className='flex justify-between'>
-                                        <span className='text-muted-foreground'>
-                                            Total Tokens
-                                        </span>
-                                        <span className='font-semibold text-foreground'>
-                                            {parseInt(
-                                                formData.tokenSupply,
-                                            ).toLocaleString()}
-                                        </span>
-                                    </div>
-                                    <div className='flex justify-between'>
-                                        <span className='text-muted-foreground'>
-                                            Token Price
-                                        </span>
-                                        <span className='font-semibold text-foreground'>
-                                            $
-                                            {parseInt(
-                                                formData.tokenPrice,
-                                            ).toLocaleString()}
-                                        </span>
-                                    </div>
-                                    <div className='border-t border-border pt-3'>
-                                        <div className='flex justify-between'>
-                                            <span className='font-semibold text-foreground'>
-                                                Total Funding Target
-                                            </span>
-                                            <span className='font-bold text-primary'>
-                                                $
-                                                {(
-                                                    parseInt(
-                                                        formData.tokenSupply,
-                                                    ) *
-                                                    parseInt(
-                                                        formData.tokenPrice,
-                                                    )
-                                                ).toLocaleString()}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
+                                <p className='text-muted-foreground'>
+                                    {(supply * priceSol).toFixed(6)} SOL (
+                                    supply × price)
+                                </p>
+                                <p className='mt-2 text-xs text-muted-foreground'>
+                                    Collateral: max(0.5 SOL, 30% of cap)
+                                </p>
                             </GlassCard>
                         )}
 
@@ -347,47 +371,20 @@ export default function CreateBusinessPage() {
                                 variant='brand'
                                 size='lg'
                                 className='flex-1'
+                                disabled={
+                                    !isStep2Valid ||
+                                    !publicKey ||
+                                    !program ||
+                                    busy
+                                }
                                 onClick={handleSubmit}
-                                disabled={!isStep2Valid}
                             >
-                                Create Business
+                                {busy ? 'Signing…' : 'Deploy pool'}
                             </Button>
                         </div>
                     </div>
                 )}
             </GlassCard>
-
-            {/* Info Card */}
-            <GlassCard className='mt-8 border-primary/20 bg-primary/5 p-6'>
-                <div className='flex items-start gap-3'>
-                    <div className='flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600'>
-                        <Check className='text-white' size={20} />
-                    </div>
-                    <div>
-                        <h3 className='mb-2 font-semibold text-foreground'>
-                            What happens next?
-                        </h3>
-                        <ul className='text-sm text-muted-foreground'>
-                            <li className='mt-2'>
-                                • Your business will be reviewed by our team
-                                (usually 24-48 hours)
-                            </li>
-                            <li className='mt-2'>
-                                • Once approved, your listing will go live on
-                                the marketplace
-                            </li>
-                            <li className='mt-2'>
-                                • Investors can start purchasing tokens
-                                immediately
-                            </li>
-                            <li className='mt-2'>
-                                • Funds are released based on predefined
-                                milestones
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </GlassCard>
         </div>
-    );
+    )
 }

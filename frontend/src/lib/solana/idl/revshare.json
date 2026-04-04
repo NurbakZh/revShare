@@ -1,0 +1,220 @@
+{
+  "address": "EBzgZ4TU3tBtzfqLLmLpZcvoKKyuvyuseCkQ3MizCv8J",
+  "metadata": {
+    "name": "revshare",
+    "version": "0.1.0",
+    "spec": "0.1.0"
+  },
+  "instructions": [
+    {
+      "name": "initializeBusiness",
+      "discriminator": [224, 230, 190, 93, 141, 151, 35, 237],
+      "accounts": [
+        { "name": "owner", "writable": true, "signer": true },
+        { "name": "businessPool", "writable": true },
+        { "name": "tokenMint", "writable": true },
+        { "name": "vault", "writable": true },
+        { "name": "tokenProgram" },
+        { "name": "systemProgram" },
+        { "name": "rent" }
+      ],
+      "args": [
+        { "name": "id", "type": "u64" },
+        { "name": "totalTokens", "type": "u64" },
+        { "name": "tokenPrice", "type": "u64" },
+        { "name": "revenueShareBps", "type": "u16" },
+        { "name": "collateralAmount", "type": "u64" },
+        { "name": "raiseLimit", "type": "u64" },
+        { "name": "targetRevenue", "type": "u64" },
+        { "name": "oracleAuthority", "type": "pubkey" }
+      ]
+    },
+    {
+      "name": "buyTokens",
+      "discriminator": [189, 21, 230, 133, 247, 2, 110, 42],
+      "accounts": [
+        { "name": "investor", "writable": true, "signer": true },
+        { "name": "businessPool", "writable": true },
+        { "name": "tokenMint", "writable": true },
+        { "name": "holderClaim", "writable": true },
+        { "name": "investorTokenAccount", "writable": true },
+        { "name": "vault", "writable": true },
+        { "name": "tokenProgram" },
+        { "name": "systemProgram" },
+        { "name": "rent" }
+      ],
+      "args": [{ "name": "amount", "type": "u64" }]
+    },
+    {
+      "name": "distributeRevenue",
+      "discriminator": [94, 34, 239, 201, 147, 227, 29, 30],
+      "accounts": [
+        { "name": "oracle", "writable": true, "signer": true },
+        { "name": "businessPool", "writable": true },
+        { "name": "revenueEpoch", "writable": true },
+        { "name": "systemProgram" }
+      ],
+      "args": [{ "name": "revenueAmount", "type": "u64" }]
+    },
+    {
+      "name": "claim",
+      "discriminator": [62, 198, 214, 193, 213, 159, 108, 210],
+      "accounts": [
+        { "name": "investor", "writable": true, "signer": true },
+        { "name": "businessPool" },
+        { "name": "holderClaim", "writable": true },
+        { "name": "revenueEpoch" },
+        { "name": "vault", "writable": true },
+        { "name": "systemProgram" }
+      ],
+      "args": []
+    },
+    {
+      "name": "listTokens",
+      "discriminator": [78, 130, 172, 175, 203, 30, 76, 177],
+      "accounts": [
+        { "name": "seller", "writable": true, "signer": true },
+        { "name": "businessPool" },
+        { "name": "tokenMint" },
+        { "name": "tokenListing", "writable": true },
+        { "name": "sellerTokenAccount", "writable": true },
+        { "name": "escrowTokenAccount", "writable": true },
+        { "name": "tokenProgram" },
+        { "name": "systemProgram" },
+        { "name": "rent" }
+      ],
+      "args": [
+        { "name": "amount", "type": "u64" },
+        { "name": "pricePerToken", "type": "u64" }
+      ]
+    },
+    {
+      "name": "buyListedTokens",
+      "discriminator": [212, 5, 83, 233, 219, 25, 254, 215],
+      "accounts": [
+        { "name": "buyer", "writable": true, "signer": true },
+        { "name": "businessPool" },
+        { "name": "tokenMint" },
+        { "name": "tokenListing", "writable": true },
+        { "name": "seller", "writable": true },
+        { "name": "escrowTokenAccount", "writable": true },
+        { "name": "buyerClaim", "writable": true },
+        { "name": "buyerTokenAccount", "writable": true },
+        { "name": "tokenProgram" },
+        { "name": "systemProgram" },
+        { "name": "rent" }
+      ],
+      "args": []
+    },
+    {
+      "name": "cancelListing",
+      "discriminator": [41, 183, 50, 232, 230, 233, 157, 70],
+      "accounts": [
+        { "name": "seller", "writable": true, "signer": true },
+        { "name": "businessPool" },
+        { "name": "tokenListing", "writable": true },
+        { "name": "escrowTokenAccount", "writable": true },
+        { "name": "sellerTokenAccount", "writable": true },
+        { "name": "tokenProgram" }
+      ],
+      "args": []
+    },
+    {
+      "name": "releaseFunds",
+      "discriminator": [225, 88, 91, 108, 126, 52, 2, 26],
+      "accounts": [
+        { "name": "owner", "writable": true, "signer": true },
+        { "name": "businessPool", "writable": true },
+        { "name": "vault", "writable": true },
+        { "name": "systemProgram" }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "businessPool",
+      "discriminator": [42, 124, 96, 117, 230, 150, 132, 168]
+    },
+    {
+      "name": "holderClaim",
+      "discriminator": [14, 44, 53, 107, 50, 118, 217, 201]
+    },
+    {
+      "name": "revenueEpoch",
+      "discriminator": [92, 96, 185, 132, 167, 75, 54, 150]
+    },
+    {
+      "name": "tokenListing",
+      "discriminator": [177, 235, 242, 219, 140, 19, 11, 82]
+    }
+  ],
+  "types": [
+    {
+      "name": "businessPool",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "owner", "type": "pubkey" },
+          { "name": "oracleAuthority", "type": "pubkey" },
+          { "name": "tokenMint", "type": "pubkey" },
+          { "name": "id", "type": "u64" },
+          { "name": "totalTokens", "type": "u64" },
+          { "name": "tokensSold", "type": "u64" },
+          { "name": "revenueShareBps", "type": "u16" },
+          { "name": "collateral", "type": "u64" },
+          { "name": "tokenPrice", "type": "u64" },
+          { "name": "currentEpoch", "type": "u64" },
+          { "name": "totalDistributed", "type": "u64" },
+          { "name": "isDefaulted", "type": "bool" },
+          { "name": "raiseLimit", "type": "u64" },
+          { "name": "fundsReleased", "type": "u64" },
+          { "name": "targetRevenue", "type": "u64" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    },
+    {
+      "name": "holderClaim",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "holder", "type": "pubkey" },
+          { "name": "business", "type": "pubkey" },
+          { "name": "tokenHeld", "type": "u64" },
+          { "name": "lastClaimedEpoch", "type": "u64" },
+          { "name": "totalClaimed", "type": "u64" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    },
+    {
+      "name": "revenueEpoch",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "business", "type": "pubkey" },
+          { "name": "epochNumber", "type": "u64" },
+          { "name": "revenueAmount", "type": "u64" },
+          { "name": "distributedAmount", "type": "u64" },
+          { "name": "timestamp", "type": "i64" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    },
+    {
+      "name": "tokenListing",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "seller", "type": "pubkey" },
+          { "name": "business", "type": "pubkey" },
+          { "name": "amount", "type": "u64" },
+          { "name": "pricePerToken", "type": "u64" },
+          { "name": "isActive", "type": "bool" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    }
+  ]
+}

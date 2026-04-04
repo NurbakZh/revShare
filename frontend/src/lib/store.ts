@@ -1,29 +1,23 @@
-import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { create } from 'zustand'
+import { createJSONStorage, persist } from 'zustand/middleware'
 
-export type ThemeType = 'dark' | 'light';
-export type UserRole = 'investor' | 'business';
+export type ThemeType = 'dark' | 'light'
+export type UserRole = 'investor' | 'business'
 
 interface IAppStore {
-    // Theme
-    fromSystem: boolean;
-    theme: ThemeType;
-    setTheme: (theme: ThemeType) => void;
-    setFromSystem: (fromSystem: boolean) => void;
-
-    // User state
-    role: UserRole;
-    isConnected: boolean;
-    hasBusiness: boolean;
-    setRole: (role: UserRole) => void;
-    setIsConnected: (isConnected: boolean) => void;
-    setHasBusiness: (hasBusiness: boolean) => void;
+    fromSystem: boolean
+    theme: ThemeType
+    setTheme: (theme: ThemeType) => void
+    setFromSystem: (fromSystem: boolean) => void
+    role: UserRole
+    hasBusiness: boolean
+    setRole: (role: UserRole) => void
+    setHasBusiness: (hasBusiness: boolean) => void
 }
 
 export const useAppStore = create<IAppStore>()(
     persist(
         (set) => ({
-            // Theme initial
             fromSystem: true,
             theme: 'light',
             setTheme: (theme) =>
@@ -35,13 +29,9 @@ export const useAppStore = create<IAppStore>()(
                 set(() => ({
                     fromSystem,
                 })),
-
-            // User states
             role: 'investor',
-            isConnected: false,
             hasBusiness: false,
             setRole: (role) => set(() => ({ role })),
-            setIsConnected: (isConnected) => set(() => ({ isConnected })),
             setHasBusiness: (hasBusiness) => set(() => ({ hasBusiness })),
         }),
         {
@@ -49,4 +39,4 @@ export const useAppStore = create<IAppStore>()(
             storage: createJSONStorage(() => localStorage),
         },
     ),
-);
+)
