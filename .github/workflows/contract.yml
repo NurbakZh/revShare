@@ -197,8 +197,10 @@ jobs:
 
       - name: Setup deploy keypair
         run: |
+          mkdir -p ~/.config/solana
           echo "${{ secrets.DEPLOY_KEYPAIR }}" > /tmp/deploy-keypair.json
-          solana config set --keypair /tmp/deploy-keypair.json
+          cp /tmp/deploy-keypair.json ~/.config/solana/id.json
+          solana config set --keypair ~/.config/solana/id.json
           solana config set --url devnet
 
       - name: Check balance
