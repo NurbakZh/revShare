@@ -13,7 +13,7 @@ use instructions::buy_listed_tokens::*;
 use instructions::cancel_listing::*;
 use instructions::release_funds::*;
 
-declare_id!("2d7xANWdHiz3b8w5btAcWuzReufZXV1r8r4t6puDEygN");
+declare_id!("EBzgZ4TU3tBtzfqLLmLpZcvoKKyuvyuseCkQ3MizCv8J");
 
 #[program]
 pub mod revshare {

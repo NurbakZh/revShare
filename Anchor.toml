@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-revshare = "2d7xANWdHiz3b8w5btAcWuzReufZXV1r8r4t6puDEygN"
+revshare = "EBzgZ4TU3tBtzfqLLmLpZcvoKKyuvyuseCkQ3MizCv8J"
 
 [programs.devnet]
-revshare = "2d7xANWdHiz3b8w5btAcWuzReufZXV1r8r4t6puDEygN"
+revshare = "EBzgZ4TU3tBtzfqLLmLpZcvoKKyuvyuseCkQ3MizCv8J"
 
 [registry]
 url = "https://api.apr.dev"

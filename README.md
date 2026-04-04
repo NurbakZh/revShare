@@ -37,7 +37,7 @@
 
 ## Демо
 
-> Контракт задеплоен на Solana Devnet: [`2d7xANWdHiz3b8w5btAcWuzReufZXV1r8r4t6puDEygN`](https://explorer.solana.com/address/2d7xANWdHiz3b8w5btAcWuzReufZXV1r8r4t6puDEygN?cluster=devnet)
+> Контракт задеплоен на Solana Devnet: [`EBzgZ4TU3tBtzfqLLmLpZcvoKKyuvyuseCkQ3MizCv8J`](https://explorer.solana.com/address/EBzgZ4TU3tBtzfqLLmLpZcvoKKyuvyuseCkQ3MizCv8J?cluster=devnet)
 
 **Ключевой флоу за 2 минуты:**
 1. Бизнес регистрирует лот → вносит залог → токены появляются в каталоге
@@ -152,7 +152,7 @@ revShare/
 
 ## Ссылки
 
-- [Контракт на Devnet Explorer](https://explorer.solana.com/address/2d7xANWdHiz3b8w5btAcWuzReufZXV1r8r4t6puDEygN?cluster=devnet)
+- [Контракт на Devnet Explorer](https://explorer.solana.com/address/EBzgZ4TU3tBtzfqLLmLpZcvoKKyuvyuseCkQ3MizCv8J?cluster=devnet)
 - [Документация для фронтенда](./docs/FRONTEND_INTEGRATION.md)
 - [Anchor документация](https://www.anchor-lang.com)
 - [Сдача на Colosseum](https://colosseum.org)

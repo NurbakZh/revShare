@@ -28,7 +28,7 @@ services:
       ASPNETCORE_URLS: http://+:5000
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=revshare;Username=postgres;Password=postgres
       Solana__RpcUrl: https://api.devnet.solana.com
-      Solana__ProgramId: 2d7xANWdHiz3b8w5btAcWuzReufZXV1r8r4t6puDEygN
+      Solana__ProgramId: EBzgZ4TU3tBtzfqLLmLpZcvoKKyuvyuseCkQ3MizCv8J
       Solana__MinMonthlyRevenue: 50000
       Solana__MaxMonthlyRevenue: 200000
     depends_on:
