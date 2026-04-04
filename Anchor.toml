@@ -8,6 +8,9 @@ skip-lint = false
 [programs.localnet]
 revshare = "2d7xANWdHiz3b8w5btAcWuzReufZXV1r8r4t6puDEygN"
 
+[programs.devnet]
+revshare = "2d7xANWdHiz3b8w5btAcWuzReufZXV1r8r4t6puDEygN"
+
 [registry]
 url = "https://api.apr.dev"
 

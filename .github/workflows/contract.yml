@@ -137,7 +137,10 @@ jobs:
 
       - name: Start local validator
         run: |
-          solana-test-validator --reset --quiet &
+          solana-test-validator \
+            --reset \
+            --quiet \
+            --bpf-program 2d7xANWdHiz3b8w5btAcWuzReufZXV1r8r4t6puDEygN target/deploy/revshare.so &
           sleep 5
 
       - name: Run tests
