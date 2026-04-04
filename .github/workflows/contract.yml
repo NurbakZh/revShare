@@ -117,6 +117,11 @@ jobs:
           name: contract-artifacts
           path: target/
 
+      - name: Start local validator
+        run: |
+          solana-test-validator --reset --quiet &
+          sleep 5
+
       - name: Run tests
         run: anchor test --skip-local-validator
 
