@@ -18,8 +18,8 @@ interface IAppStore {
 export const useAppStore = create<IAppStore>()(
     persist(
         (set) => ({
-            fromSystem: true,
-            theme: 'light',
+            fromSystem: false,
+            theme: 'dark',
             setTheme: (theme) =>
                 set(() => ({
                     theme,

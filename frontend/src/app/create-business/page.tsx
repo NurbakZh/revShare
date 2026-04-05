@@ -3,6 +3,8 @@
 import { GlassCard } from '@/components/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { fetchHealth, registerBusiness } from '@/lib/api/oracle'
 import { useAppStore } from '@/lib/store'
 import {
@@ -206,10 +208,11 @@ export default function CreateBusinessPage() {
                             Business information
                         </h2>
                         <div className='mt-6'>
-                            <label className='mb-2 block text-sm font-medium text-muted-foreground'>
-                                Name *
-                            </label>
+                            <Label htmlFor='business-name' required>
+                                Name
+                            </Label>
                             <Input
+                                id='business-name'
                                 placeholder='e.g., Brew & Bytes Café'
                                 value={formData.name}
                                 onChange={(e) =>
@@ -221,10 +224,11 @@ export default function CreateBusinessPage() {
                             />
                         </div>
                         <div className='mt-6'>
-                            <label className='mb-2 block text-sm font-medium text-muted-foreground'>
-                                Description *
-                            </label>
-                            <textarea
+                            <Label htmlFor='business-description' required>
+                                Description
+                            </Label>
+                            <Textarea
+                                id='business-description'
                                 placeholder='What you do…'
                                 value={formData.description}
                                 onChange={(e) =>
@@ -234,14 +238,14 @@ export default function CreateBusinessPage() {
                                     })
                                 }
                                 rows={4}
-                                className='w-full resize-none rounded-2xl border border-input bg-background px-4 py-3 text-foreground transition-all placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 dark:bg-accent/20'
                             />
                         </div>
                         <div className='mt-6'>
-                            <label className='mb-2 block text-sm font-medium text-muted-foreground'>
-                                City *
-                            </label>
+                            <Label htmlFor='business-city' required>
+                                City
+                            </Label>
                             <Input
+                                id='business-city'
                                 placeholder='e.g., Astana'
                                 value={formData.city}
                                 onChange={(e) =>
@@ -272,10 +276,11 @@ export default function CreateBusinessPage() {
                         </h2>
                         <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
                             <div>
-                                <label className='mb-2 block text-sm font-medium text-muted-foreground'>
-                                    Total token supply *
-                                </label>
+                                <Label htmlFor='token-supply' required>
+                                    Total token supply
+                                </Label>
                                 <Input
+                                    id='token-supply'
                                     type='number'
                                     placeholder='1000'
                                     value={formData.tokenSupply}
@@ -288,10 +293,11 @@ export default function CreateBusinessPage() {
                                 />
                             </div>
                             <div>
-                                <label className='mb-2 block text-sm font-medium text-muted-foreground'>
-                                    Token price (SOL) *
-                                </label>
+                                <Label htmlFor='token-price' required>
+                                    Token price (SOL)
+                                </Label>
                                 <Input
+                                    id='token-price'
                                     type='number'
                                     step='0.000001'
                                     placeholder='0.001'
@@ -307,10 +313,15 @@ export default function CreateBusinessPage() {
                         </div>
                         <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
                             <div>
-                                <label className='mb-2 block text-sm font-medium text-muted-foreground'>
-                                    Revenue share (%) * (max 50%)
-                                </label>
+                                <Label
+                                    htmlFor='revenue-share'
+                                    required
+                                    hint='(max 50%)'
+                                >
+                                    Revenue share (%)
+                                </Label>
                                 <Input
+                                    id='revenue-share'
                                     type='number'
                                     placeholder='10'
                                     min='1'
@@ -325,10 +336,11 @@ export default function CreateBusinessPage() {
                                 />
                             </div>
                             <div>
-                                <label className='mb-2 block text-sm font-medium text-muted-foreground'>
-                                    Target monthly revenue (SOL) *
-                                </label>
+                                <Label htmlFor='target-revenue' required>
+                                    Target monthly revenue (SOL)
+                                </Label>
                                 <Input
+                                    id='target-revenue'
                                     type='number'
                                     step='0.01'
                                     placeholder='2'

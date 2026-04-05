@@ -1,12 +1,15 @@
 'use client';
 
 import { useAppStore } from '@/lib/store';
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
+
+const useIsomorphicLayoutEffect =
+    typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export function ThemeWrapper({ children }: { children: React.ReactNode }) {
     const { theme, fromSystem } = useAppStore();
 
-    useEffect(() => {
+    useIsomorphicLayoutEffect(() => {
         const root = window.document.documentElement;
 
         const applyTheme = (targetTheme: 'dark' | 'light') => {
@@ -25,6 +28,19 @@ export function ThemeWrapper({ children }: { children: React.ReactNode }) {
             applyTheme(theme);
         }
     }, [theme, fromSystem]);
+
+    useEffect(() => {
+        if (!fromSystem) return;
+        const mq = window.matchMedia('(prefers-color-scheme: dark)');
+        const root = window.document.documentElement;
+        const apply = () => {
+            root.classList.remove('light', 'dark');
+            root.classList.add(mq.matches ? 'dark' : 'light');
+        };
+        apply();
+        mq.addEventListener('change', apply);
+        return () => mq.removeEventListener('change', apply);
+    }, [fromSystem]);
 
     return <>{children}</>;
 }
