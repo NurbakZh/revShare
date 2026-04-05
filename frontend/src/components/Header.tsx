@@ -8,11 +8,16 @@ import { useAppStore } from '@/lib/store'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import { useWallet } from '@solana/wallet-adapter-react'
 import Link from 'next/link'
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 
 export function Header() {
     const { publicKey, connected } = useWallet()
     const { setHasBusiness } = useAppStore()
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
     useEffect(() => {
         if (!publicKey) {
@@ -48,9 +53,14 @@ export function Header() {
                 <div className='flex items-center gap-6'>
                     <HeaderNav />
                     <div className='mx-2 h-8 w-[1px] bg-border' />
-                    {connected && <RoleToggle />}
+                    {mounted && connected && <RoleToggle />}
                     <ThemeToggle />
-                    {connected ? (
+                    {!mounted ? (
+                        <div
+                            className='h-10 min-w-[180px] animate-pulse rounded-xl bg-muted/40'
+                            aria-hidden
+                        />
+                    ) : connected ? (
                         <div className='flex items-center gap-3'>
                             <Link
                                 href='/profile'

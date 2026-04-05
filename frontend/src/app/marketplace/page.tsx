@@ -1,10 +1,10 @@
-'use client'
+'use client';
 
-import { GlassCard } from '@/components/GlassCard'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { fetchBusiness, fetchMarketplaceListings } from '@/lib/api/oracle'
-import type { TokenListingDto } from '@/lib/api/types'
+import { GlassCard } from '@/components/GlassCard';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { fetchBusiness, fetchMarketplaceListings } from '@/lib/api/oracle';
+import type { TokenListingDto } from '@/lib/api/types';
 import {
     fetchBusinessPoolAccount,
     fetchTokenListingAccount,
@@ -29,75 +29,75 @@ import { Plus, Search, ShoppingCart, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import React, { useCallback, useEffect, useState } from 'react'
 
-type Row = TokenListingDto & { businessName?: string }
+type Row = TokenListingDto & { businessName?: string };
 
 export default function MarketplacePage() {
-    const { publicKey } = useWallet()
-    const program = useRevshareProgram()
-    const [searchQuery, setSearchQuery] = useState('')
-    const [rows, setRows] = useState<Row[]>([])
-    const [loading, setLoading] = useState(true)
-    const [err, setErr] = useState<string | null>(null)
-    const [busy, setBusy] = useState(false)
-    const [showBuy, setShowBuy] = useState<Row | null>(null)
+    const { publicKey } = useWallet();
+    const program = useRevshareProgram();
+    const [searchQuery, setSearchQuery] = useState('');
+    const [rows, setRows] = useState<Row[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [err, setErr] = useState<string | null>(null);
+    const [busy, setBusy] = useState(false);
+    const [showBuy, setShowBuy] = useState<Row | null>(null);
 
     const load = useCallback(async () => {
-        setLoading(true)
-        const res = await fetchMarketplaceListings()
+        setLoading(true);
+        const res = await fetchMarketplaceListings();
         if (!res.success) {
-            setErr(res.error || 'Request failed')
-            setRows([])
-            setLoading(false)
-            return
+            setErr(res.error || 'Request failed');
+            setRows([]);
+            setLoading(false);
+            return;
         }
-        const active = (res.data ?? []).filter((l) => l.status === 0)
-        const enriched: Row[] = []
+        const active = (res.data ?? []).filter((l) => l.status === 0);
+        const enriched: Row[] = [];
         for (const l of active) {
-            const b = await fetchBusiness(l.businessPubkey)
+            const b = await fetchBusiness(l.businessPubkey);
             enriched.push({
                 ...l,
                 businessName: b.success && b.data ? b.data.name : undefined,
-            })
+            });
         }
-        setRows(enriched)
-        setLoading(false)
-    }, [])
+        setRows(enriched);
+        setLoading(false);
+    }, []);
 
     useEffect(() => {
-        load()
-    }, [load])
+        load();
+    }, [load]);
 
     const filtered = rows.filter((r) =>
         (r.businessName || r.businessPubkey)
             .toLowerCase()
             .includes(searchQuery.toLowerCase()),
-    )
+    );
 
     async function buyListed(row: Row) {
-        if (!program || !publicKey) return
-        setBusy(true)
-        setErr(null)
+        if (!program || !publicKey) return;
+        setBusy(true);
+        setErr(null);
         try {
-            const businessPoolPda = new PublicKey(row.businessPubkey)
+            const businessPoolPda = new PublicKey(row.businessPubkey);
             const poolAcc = await fetchBusinessPoolAccount(
                 program.provider.connection,
                 businessPoolPda,
-            )
-            if (!poolAcc) throw new Error('Pool missing')
-            const [tokenMintPda] = getTokenMintPda(businessPoolPda)
-            const listingPda = new PublicKey(row.listingPubkey)
+            );
+            if (!poolAcc) throw new Error('Pool missing');
+            const [tokenMintPda] = getTokenMintPda(businessPoolPda);
+            const listingPda = new PublicKey(row.listingPubkey);
             const listing = await fetchTokenListingAccount(
                 program.provider.connection,
                 listingPda,
-            )
-            if (!listing) throw new Error('Listing missing')
-            const seller = listing.seller
+            );
+            if (!listing) throw new Error('Listing missing');
+            const seller = listing.seller;
             const escrow = await findEscrowTokenAccountForListing(
                 program.provider.connection,
                 listingPda,
                 tokenMintPda,
-            )
-            if (!escrow) throw new Error('Escrow not found')
+            );
+            if (!escrow) throw new Error('Escrow not found');
             const [buyerClaimPda] = getHolderClaimPda(
                 businessPoolPda,
                 publicKey,
@@ -127,9 +127,9 @@ export default function MarketplacePage() {
             setShowBuy(null)
             await load()
         } catch (e) {
-            setErr(e instanceof Error ? e.message : 'Buy failed')
+            setErr(e instanceof Error ? e.message : 'Buy failed');
         } finally {
-            setBusy(false)
+            setBusy(false);
         }
     }
 
@@ -152,9 +152,7 @@ export default function MarketplacePage() {
                 </Button>
             </div>
 
-            {err && (
-                <p className='mb-4 text-sm text-red-500'>{err}</p>
-            )}
+            {err && <p className='mb-4 text-sm text-red-500'>{err}</p>}
 
             <div className='mt-8 grid grid-cols-1 gap-6 md:grid-cols-2'>
                 <GlassCard className='p-6'>
@@ -240,10 +238,8 @@ export default function MarketplacePage() {
                                 >
                                     <td className='px-4 py-4 font-semibold text-foreground'>
                                         {listing.businessName ||
-                                            listing.businessPubkey.slice(
-                                                0,
-                                                8,
-                                            ) + '…'}
+                                            listing.businessPubkey.slice(0, 8) +
+                                                '…'}
                                     </td>
                                     <td className='px-4 py-4 font-mono text-sm text-muted-foreground'>
                                         {listing.sellerPubkey.slice(0, 8)}…
@@ -262,13 +258,9 @@ export default function MarketplacePage() {
                                             variant='brand'
                                             size='sm'
                                             disabled={
-                                                !program ||
-                                                !publicKey ||
-                                                busy
+                                                !program || !publicKey || busy
                                             }
-                                            onClick={() =>
-                                                setShowBuy(listing)
-                                            }
+                                            onClick={() => setShowBuy(listing)}
                                         >
                                             Buy
                                         </Button>
@@ -325,5 +317,5 @@ export default function MarketplacePage() {
                 </div>
             )}
         </div>
-    )
+    );
 }
