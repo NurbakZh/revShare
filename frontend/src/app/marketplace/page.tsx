@@ -17,13 +17,14 @@ import {
     getTokenMintPda,
 } from '@/lib/solana/pda'
 import { useRevshareProgram } from '@/lib/solana/useRevshareProgram'
-import {
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-    TOKEN_PROGRAM_ID,
-    getAssociatedTokenAddressSync,
-} from '@solana/spl-token'
+import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js'
+import {
+    Keypair,
+    PublicKey,
+    SystemProgram,
+    SYSVAR_RENT_PUBKEY,
+} from '@solana/web3.js'
 import { Plus, Search, ShoppingCart, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import React, { useCallback, useEffect, useState } from 'react'
@@ -101,13 +102,7 @@ export default function MarketplacePage() {
                 businessPoolPda,
                 publicKey,
             )
-            const buyerAta = getAssociatedTokenAddressSync(
-                tokenMintPda,
-                publicKey,
-                false,
-                TOKEN_PROGRAM_ID,
-                ASSOCIATED_TOKEN_PROGRAM_ID,
-            )
+            const buyerTokenKp = Keypair.generate()
             await program.methods
                 .buyListedTokens()
                 .accounts({
@@ -118,16 +113,16 @@ export default function MarketplacePage() {
                     seller,
                     escrowTokenAccount: escrow,
                     buyerClaim: buyerClaimPda,
-                    buyerTokenAccount: buyerAta,
+                    buyerTokenAccount: buyerTokenKp.publicKey,
                     tokenProgram: TOKEN_PROGRAM_ID,
-                    associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
                     systemProgram: SystemProgram.programId,
                     rent: SYSVAR_RENT_PUBKEY,
                 })
+                .signers([buyerTokenKp])
                 .rpc()
             setStoredInvestorTokenAccount(
                 businessPoolPda.toBase58(),
-                buyerAta.toBase58(),
+                buyerTokenKp.publicKey.toBase58(),
             )
             setShowBuy(null)
             await load()

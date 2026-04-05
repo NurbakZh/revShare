@@ -25,13 +25,14 @@ import {
 } from '@/lib/solana/pda'
 import { useRevshareProgram } from '@/lib/solana/useRevshareProgram'
 import { BN } from '@coral-xyz/anchor'
-import {
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-    TOKEN_PROGRAM_ID,
-    getAssociatedTokenAddressSync,
-} from '@solana/spl-token'
+import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js'
+import {
+    Keypair,
+    PublicKey,
+    SystemProgram,
+    SYSVAR_RENT_PUBKEY,
+} from '@solana/web3.js'
 import { ArrowLeft, Shield, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
@@ -150,21 +151,18 @@ export default function BusinessDetailsPage() {
                 businessPoolPda,
                 publicKey,
             )
-            const investorAta = getAssociatedTokenAddressSync(
+            const investorTokenAccount = await getAssociatedTokenAddress(
                 tokenMintPda,
                 publicKey,
-                false,
-                TOKEN_PROGRAM_ID,
-                ASSOCIATED_TOKEN_PROGRAM_ID,
             )
-            await program.methods
+            const sig = await program.methods
                 .buyTokens(new BN(amountClamped))
                 .accounts({
                     investor: publicKey,
                     businessPool: businessPoolPda,
                     tokenMint: tokenMintPda,
                     holderClaim: holderClaimPda,
-                    investorTokenAccount: investorAta,
+                    investorTokenAccount,
                     vault: vaultPda,
                     tokenProgram: TOKEN_PROGRAM_ID,
                     associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -174,7 +172,7 @@ export default function BusinessDetailsPage() {
                 .rpc()
             setStoredInvestorTokenAccount(
                 businessPoolPda.toBase58(),
-                investorAta.toBase58(),
+                investorTokenAccount.toBase58(),
             )
             setShowBuyModal(false)
             await load()
@@ -213,14 +211,11 @@ export default function BusinessDetailsPage() {
                 businessPoolPda,
                 publicKey,
             )
-            const buyerAta = getAssociatedTokenAddressSync(
+            const buyerTokenAccount = await getAssociatedTokenAddress(
                 tokenMintPda,
                 publicKey,
-                false,
-                TOKEN_PROGRAM_ID,
-                ASSOCIATED_TOKEN_PROGRAM_ID,
             )
-            await program.methods
+            const sig = await program.methods
                 .buyListedTokens()
                 .accounts({
                     buyer: publicKey,
@@ -230,7 +225,7 @@ export default function BusinessDetailsPage() {
                     seller,
                     escrowTokenAccount: escrow,
                     buyerClaim: buyerClaimPda,
-                    buyerTokenAccount: buyerAta,
+                    buyerTokenAccount,
                     tokenProgram: TOKEN_PROGRAM_ID,
                     associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
                     systemProgram: SystemProgram.programId,
@@ -239,7 +234,7 @@ export default function BusinessDetailsPage() {
                 .rpc()
             setStoredInvestorTokenAccount(
                 businessPoolPda.toBase58(),
-                buyerAta.toBase58(),
+                buyerTokenAccount.toBase58(),
             )
             await load()
         } catch (e) {

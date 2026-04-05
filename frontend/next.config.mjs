@@ -4,6 +4,14 @@ const require = createRequire(import.meta.url)
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    async rewrites() {
+        return [
+            {
+                source: '/api/:path*',
+                destination: 'http://localhost:5000/api/:path*', // порт dotnet бэка
+            },
+        ]
+    },
     webpack: (config, { isServer }) => {
         config.resolve.fallback = {
             ...config.resolve.fallback,

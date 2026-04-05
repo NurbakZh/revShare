@@ -1,6 +1,6 @@
 import { PublicKey } from '@solana/web3.js'
 
-const DEFAULT_ORACLE = 'http://localhost:5000'
+const DEFAULT_ORACLE = ''
 const DEFAULT_RPC = 'https://api.devnet.solana.com'
 const DEFAULT_PROGRAM_ID = 'EBzgZ4TU3tBtzfqLLmLpZcvoKKyuvyuseCkQ3MizCv8J'
 
