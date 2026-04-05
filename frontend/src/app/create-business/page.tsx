@@ -91,18 +91,17 @@ export default function CreateBusinessPage() {
             const [businessPoolPda] = getBusinessPoolPda(publicKey, 0)
             const [tokenMintPda] = getTokenMintPda(businessPoolPda)
             const [vaultPda] = getVaultPda(businessPoolPda)
-
             await program.methods
-                .initializeBusiness({
-                    id: new BN(0),
-                    totalTokens: new BN(totalTokens),
-                    tokenPrice: new BN(tokenPriceLamports),
+                .initializeBusiness(
+                    new BN(0),
+                    new BN(totalTokens),
+                    new BN(tokenPriceLamports),
                     revenueShareBps,
-                    collateralAmount: new BN(collateralAmount),
-                    raiseLimit: new BN(raiseLimit),
-                    targetRevenue: new BN(targetRevenueLamports),
+                    new BN(collateralAmount),
+                    new BN(raiseLimit),
+                    new BN(targetRevenueLamports),
                     oracleAuthority,
-                })
+                )
                 .accounts({
                     owner: publicKey,
                     businessPool: businessPoolPda,
