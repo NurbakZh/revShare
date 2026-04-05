@@ -131,6 +131,15 @@
         { "name": "systemProgram" }
       ],
       "args": []
+    },
+    {
+      "name": "unlockFirstTranche",
+      "discriminator": [204, 61, 224, 70, 106, 49, 211, 253],
+      "accounts": [
+        { "name": "owner", "writable": true, "signer": true },
+        { "name": "businessPool", "writable": true }
+      ],
+      "args": []
     }
   ],
   "accounts": [

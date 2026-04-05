@@ -99,11 +99,7 @@ pub fn handler(ctx: Context<BuyTokens>, amount: u64) -> Result<()> {
 
     pool.tokens_sold += amount;
 
-    // Unlock first tranche when all tokens sold
-    if pool.tokens_sold >= pool.total_tokens && pool.funds_released == 0 {
-        pool.funds_released = 40;
-        msg!("First tranche unlocked: 40%");
-    }
+    pool.try_unlock_first_tranche();
 
     // Update holder claim
     let claim = &mut ctx.accounts.holder_claim;

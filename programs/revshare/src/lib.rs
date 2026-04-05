@@ -12,6 +12,7 @@ use instructions::list_tokens::*;
 use instructions::buy_listed_tokens::*;
 use instructions::cancel_listing::*;
 use instructions::release_funds::*;
+use instructions::unlock_first_tranche::*;
 
 declare_id!("EBzgZ4TU3tBtzfqLLmLpZcvoKKyuvyuseCkQ3MizCv8J");
 
@@ -59,5 +60,9 @@ pub mod revshare {
 
     pub fn release_funds(ctx: Context<ReleaseFunds>) -> Result<()> {
         instructions::release_funds::handler(ctx)
+    }
+
+    pub fn unlock_first_tranche(ctx: Context<UnlockFirstTranche>) -> Result<()> {
+        instructions::unlock_first_tranche::handler(ctx)
     }
 }

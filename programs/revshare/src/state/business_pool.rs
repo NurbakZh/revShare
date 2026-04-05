@@ -21,6 +21,24 @@ pub struct BusinessPool {
 }
 
 impl BusinessPool {
+    /// Sets `funds_released` to 40 when the fundraise is complete: either every
+    /// token was minted from the pool, or the raise cap (`raise_limit`) was
+    /// reached (so no further primary sales are possible even if `tokens_sold < total_tokens`).
+    pub fn try_unlock_first_tranche(&mut self) {
+        if self.funds_released != 0 {
+            return;
+        }
+        let Some(raised) = self.tokens_sold.checked_mul(self.token_price) else {
+            return;
+        };
+        let sold_out = self.tokens_sold >= self.total_tokens;
+        let raise_cap_hit = raised >= self.raise_limit;
+        if sold_out || raise_cap_hit {
+            self.funds_released = 40;
+            msg!("First tranche unlocked: 40%");
+        }
+    }
+
     pub const LEN: usize = 8   // discriminator
         + 32  // owner
         + 32  // oracle_authority

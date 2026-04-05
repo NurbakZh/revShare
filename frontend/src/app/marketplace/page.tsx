@@ -1,12 +1,15 @@
 'use client';
 
 import { GlassCard } from '@/components/GlassCard';
+import { PurchaseSuccessModal } from '@/components/PurchaseSuccessModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { fetchBusiness, fetchMarketplaceListings } from '@/lib/api/oracle';
+import { Label } from '@/components/ui/label';
+import { fetchBusiness, fetchBusinesses, fetchMarketplaceListings } from '@/lib/api/oracle';
 import type { TokenListingDto } from '@/lib/api/types';
 import {
     fetchBusinessPoolAccount,
+    fetchHolderClaimAccount,
     fetchTokenListingAccount,
     findEscrowTokenAccountForListing,
     lamportsToSol,
@@ -14,32 +17,64 @@ import {
 } from '@/lib/solana/helpers'
 import {
     getHolderClaimPda,
+    getTokenListingPda,
     getTokenMintPda,
 } from '@/lib/solana/pda'
+import { getSolanaExplorerTxUrl } from '@/lib/env'
+import { useAppStore } from '@/lib/store'
 import { useRevshareProgram } from '@/lib/solana/useRevshareProgram'
-import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
-import { useWallet } from '@solana/wallet-adapter-react'
 import {
-    Keypair,
-    PublicKey,
-    SystemProgram,
-    SYSVAR_RENT_PUBKEY,
-} from '@solana/web3.js'
-import { Plus, Search, ShoppingCart, TrendingUp } from 'lucide-react'
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+    TOKEN_PROGRAM_ID,
+    getAssociatedTokenAddress,
+} from '@solana/spl-token'
+import { useConnection, useWallet } from '@solana/wallet-adapter-react'
+import { BN } from '@coral-xyz/anchor'
+import { Keypair, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js'
+import { Plus, Search, ShoppingCart, Tag, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import React, { useCallback, useEffect, useState } from 'react'
 
 type Row = TokenListingDto & { businessName?: string };
 
+type SellHolding = {
+    poolPubkey: string
+    name: string
+    tokens: number
+}
+
+const LAMPORTS_PER_SOL = 1_000_000_000
+
+function solToLamports(sol: number): number {
+    if (!Number.isFinite(sol) || sol <= 0) return 0
+    return Math.floor(sol * LAMPORTS_PER_SOL)
+}
+
 export default function MarketplacePage() {
+    const { connection } = useConnection()
     const { publicKey } = useWallet();
     const program = useRevshareProgram();
+    const role = useAppStore((s) => s.role)
     const [searchQuery, setSearchQuery] = useState('');
     const [rows, setRows] = useState<Row[]>([]);
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
     const [showBuy, setShowBuy] = useState<Row | null>(null);
+    const [purchaseDone, setPurchaseDone] = useState<{
+        signature: string;
+        tokens: number;
+        totalSol: number;
+        businessName: string;
+    } | null>(null);
+    const [showSell, setShowSell] = useState(false);
+    const [sellHoldings, setSellHoldings] = useState<SellHolding[]>([]);
+    const [sellHoldingsLoading, setSellHoldingsLoading] = useState(false);
+    const [sellPoolPubkey, setSellPoolPubkey] = useState('');
+    const [sellAmount, setSellAmount] = useState(1);
+    const [sellPriceSol, setSellPriceSol] = useState('');
+    const [sellErr, setSellErr] = useState<string | null>(null);
+    const [listSuccessSig, setListSuccessSig] = useState<string | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -66,6 +101,145 @@ export default function MarketplacePage() {
     useEffect(() => {
         load();
     }, [load]);
+
+    const loadSellHoldings = useCallback(async () => {
+        if (!publicKey) {
+            setSellHoldings([]);
+            return;
+        }
+        setSellHoldingsLoading(true);
+        setSellErr(null);
+        try {
+            const res = await fetchBusinesses();
+            const out: SellHolding[] = [];
+            if (res.success && res.data) {
+                for (const b of res.data) {
+                    const poolPk = new PublicKey(b.pubkey);
+                    const [claimPk] = getHolderClaimPda(poolPk, publicKey);
+                    const claim = await fetchHolderClaimAccount(
+                        connection,
+                        claimPk,
+                    );
+                    if (!claim || claim.tokenHeld.isZero()) continue;
+                    out.push({
+                        poolPubkey: b.pubkey,
+                        name: b.name,
+                        tokens: claim.tokenHeld.toNumber(),
+                    });
+                }
+            }
+            setSellHoldings(out);
+            setSellPoolPubkey((prev) => {
+                if (out.length === 0) return '';
+                if (prev && out.some((h) => h.poolPubkey === prev)) {
+                    return prev;
+                }
+                return out[0].poolPubkey;
+            });
+        } catch (e) {
+            setSellErr(
+                e instanceof Error ? e.message : 'Could not load your holdings',
+            );
+            setSellHoldings([]);
+        } finally {
+            setSellHoldingsLoading(false);
+        }
+    }, [connection, publicKey]);
+
+    function openSellModal() {
+        setShowSell(true);
+        setSellErr(null);
+        setListSuccessSig(null);
+        setSellAmount(1);
+        setSellPriceSol('');
+        void loadSellHoldings();
+    }
+
+    async function submitListTokens() {
+        if (!program || !publicKey) return;
+        const holding = sellHoldings.find((h) => h.poolPubkey === sellPoolPubkey);
+        if (!holding) {
+            setSellErr('Choose a business pool');
+            return;
+        }
+        const priceSol = Number.parseFloat(sellPriceSol.replace(',', '.'));
+        const priceLamports = solToLamports(priceSol);
+        if (!Number.isFinite(priceSol) || priceLamports <= 0) {
+            setSellErr('Enter a valid price per token (SOL)');
+            return;
+        }
+        if (!Number.isInteger(sellAmount) || sellAmount < 1) {
+            setSellErr('Amount must be a positive integer');
+            return;
+        }
+        if (sellAmount > holding.tokens) {
+            setSellErr(`You only hold ${holding.tokens} tokens in this pool`);
+            return;
+        }
+        setBusy(true);
+        setSellErr(null);
+        try {
+            const businessPoolPda = new PublicKey(sellPoolPubkey);
+            const pool = await fetchBusinessPoolAccount(
+                connection,
+                businessPoolPda,
+            );
+            if (!pool) throw new Error('Pool account not found');
+            if (pool.owner.equals(publicKey)) {
+                throw new Error('Business owner cannot list tokens');
+            }
+            const [tokenMintPda] = getTokenMintPda(businessPoolPda);
+            const [tokenListingPda] = getTokenListingPda(
+                businessPoolPda,
+                publicKey,
+            );
+            const listingInfo = await connection.getAccountInfo(
+                tokenListingPda,
+                'confirmed',
+            );
+            if (listingInfo?.data?.length) {
+                const existing = await fetchTokenListingAccount(
+                    connection,
+                    tokenListingPda,
+                );
+                if (existing?.isActive) {
+                    throw new Error(
+                        'You already have an active listing for this pool. Cancel it first.',
+                    );
+                }
+                throw new Error(
+                    'A listing account exists for this pool. Cancel it before creating a new one.',
+                );
+            }
+            const sellerTokenAccount = await getAssociatedTokenAddress(
+                tokenMintPda,
+                publicKey,
+            );
+            const escrowKp = Keypair.generate();
+            const sig = await program.methods
+                .listTokens(new BN(sellAmount), new BN(priceLamports))
+                .accounts({
+                    seller: publicKey,
+                    businessPool: businessPoolPda,
+                    tokenMint: tokenMintPda,
+                    tokenListing: tokenListingPda,
+                    sellerTokenAccount,
+                    escrowTokenAccount: escrowKp.publicKey,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    systemProgram: SystemProgram.programId,
+                    rent: SYSVAR_RENT_PUBKEY,
+                })
+                .signers([escrowKp])
+                .rpc();
+            setListSuccessSig(sig);
+            setShowSell(false);
+            await load();
+        } catch (e) {
+            setSellErr(e instanceof Error ? e.message : 'Listing failed');
+        } finally {
+            setBusy(false);
+        }
+    }
 
     const filtered = rows.filter((r) =>
         (r.businessName || r.businessPubkey)
@@ -102,8 +276,13 @@ export default function MarketplacePage() {
                 businessPoolPda,
                 publicKey,
             )
-            const buyerTokenKp = Keypair.generate()
-            await program.methods
+            const buyerTokenAccount = await getAssociatedTokenAddress(
+                tokenMintPda,
+                publicKey,
+            )
+            const totalLamports = listing.amount.mul(listing.pricePerToken)
+            const totalSolPaid = lamportsToSol(totalLamports.toNumber())
+            const sig = await program.methods
                 .buyListedTokens()
                 .accounts({
                     buyer: publicKey,
@@ -113,18 +292,24 @@ export default function MarketplacePage() {
                     seller,
                     escrowTokenAccount: escrow,
                     buyerClaim: buyerClaimPda,
-                    buyerTokenAccount: buyerTokenKp.publicKey,
+                    buyerTokenAccount,
                     tokenProgram: TOKEN_PROGRAM_ID,
+                    associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
                     systemProgram: SystemProgram.programId,
                     rent: SYSVAR_RENT_PUBKEY,
                 })
-                .signers([buyerTokenKp])
                 .rpc()
             setStoredInvestorTokenAccount(
                 businessPoolPda.toBase58(),
-                buyerTokenKp.publicKey.toBase58(),
+                buyerTokenAccount.toBase58(),
             )
             setShowBuy(null)
+            setPurchaseDone({
+                signature: sig,
+                tokens: listing.amount.toNumber(),
+                totalSol: totalSolPaid,
+                businessName: row.businessName ?? 'Business',
+            })
             await load()
         } catch (e) {
             setErr(e instanceof Error ? e.message : 'Buy failed');
@@ -135,6 +320,15 @@ export default function MarketplacePage() {
 
     return (
         <div className='container mx-auto px-4 py-8 '>
+            <PurchaseSuccessModal
+                open={!!purchaseDone}
+                onClose={() => setPurchaseDone(null)}
+                businessName={purchaseDone?.businessName ?? ''}
+                tokens={purchaseDone?.tokens ?? 0}
+                totalSol={purchaseDone?.totalSol ?? 0}
+                signature={purchaseDone?.signature ?? ''}
+                variantLabel='Marketplace listing'
+            />
             <div className='mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center'>
                 <div>
                     <h1 className='mb-2 text-4xl font-bold text-foreground'>
@@ -144,13 +338,46 @@ export default function MarketplacePage() {
                         Listings from API, settlement on-chain
                     </p>
                 </div>
-                <Button variant='brand' size='lg' asChild>
-                    <Link href='/'>
-                        <Plus size={20} className='mr-2' />
-                        Buy from catalog
-                    </Link>
-                </Button>
+                <div className='flex flex-wrap items-center gap-2'>
+                    {role === 'investor' && (
+                        <Button
+                            type='button'
+                            variant='outline'
+                            size='lg'
+                            disabled={!publicKey}
+                            title={
+                                !publicKey
+                                    ? 'Connect wallet to list tokens'
+                                    : undefined
+                            }
+                            onClick={openSellModal}
+                        >
+                            <Tag size={20} className='mr-2' />
+                            Sell tokens
+                        </Button>
+                    )}
+                    <Button variant='brand' size='lg' asChild>
+                        <Link href='/'>
+                            <Plus size={20} className='mr-2' />
+                            Buy from catalog
+                        </Link>
+                    </Button>
+                </div>
             </div>
+
+            {listSuccessSig && (
+                <p className='mb-4 text-sm text-green-500'>
+                    Listing published.{' '}
+                    <a
+                        href={getSolanaExplorerTxUrl(listSuccessSig)}
+                        target='_blank'
+                        rel='noreferrer'
+                        className='font-mono underline'
+                    >
+                        View transaction
+                    </a>
+                </p>
+            )}
 
             {err && <p className='mb-4 text-sm text-red-500'>{err}</p>}
 
@@ -276,6 +503,130 @@ export default function MarketplacePage() {
                     </div>
                 )}
             </GlassCard>
+
+            {showSell && (
+                <div
+                    className='fixed inset-0 z-[99999] flex items-center justify-center bg-black/75 p-4 backdrop-blur-lg'
+                    onClick={() => setShowSell(false)}
+                >
+                    <div onClick={(e) => e.stopPropagation()}>
+                        <GlassCard className='max-w-md p-8'>
+                            <h2 className='mb-2 text-xl font-bold text-foreground'>
+                                List tokens for sale
+                            </h2>
+                            <p className='mb-6 text-sm text-muted-foreground'>
+                                Tokens move to an on-chain escrow. One active
+                                listing per business pool.
+                            </p>
+                            {sellHoldingsLoading ? (
+                                <p className='text-muted-foreground'>Loading…</p>
+                            ) : sellHoldings.length === 0 ? (
+                                <p className='mb-4 text-sm text-muted-foreground'>
+                                    No token holdings found. Buy tokens from the
+                                    catalog first, then you can resell them here.
+                                </p>
+                            ) : (
+                                <>
+                                    <div className='mb-4'>
+                                        <Label htmlFor='sell-pool'>
+                                            Business pool
+                                        </Label>
+                                        <select
+                                            id='sell-pool'
+                                            className='mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                                            value={sellPoolPubkey}
+                                            onChange={(e) =>
+                                                setSellPoolPubkey(e.target.value)
+                                            }
+                                        >
+                                            {sellHoldings.map((h) => (
+                                                <option
+                                                    key={h.poolPubkey}
+                                                    value={h.poolPubkey}
+                                                >
+                                                    {h.name} (you hold{' '}
+                                                    {h.tokens})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className='mb-4'>
+                                        <Label htmlFor='sell-amt' required>
+                                            Amount (tokens)
+                                        </Label>
+                                        <Input
+                                            id='sell-amt'
+                                            type='number'
+                                            min={1}
+                                            max={
+                                                sellHoldings.find(
+                                                    (x) =>
+                                                        x.poolPubkey ===
+                                                        sellPoolPubkey,
+                                                )?.tokens ?? 1
+                                            }
+                                            value={sellAmount}
+                                            onChange={(e) =>
+                                                setSellAmount(
+                                                    Number.parseInt(
+                                                        e.target.value,
+                                                        10,
+                                                    ) || 1,
+                                                )
+                                            }
+                                            className='mt-2'
+                                        />
+                                    </div>
+                                    <div className='mb-6'>
+                                        <Label htmlFor='sell-price' required>
+                                            Price per token (SOL)
+                                        </Label>
+                                        <Input
+                                            id='sell-price'
+                                            type='text'
+                                            inputMode='decimal'
+                                            placeholder='0.01'
+                                            value={sellPriceSol}
+                                            onChange={(e) =>
+                                                setSellPriceSol(e.target.value)
+                                            }
+                                            className='mt-2'
+                                        />
+                                    </div>
+                                </>
+                            )}
+                            {sellErr && (
+                                <p className='mb-4 text-sm text-red-500'>
+                                    {sellErr}
+                                </p>
+                            )}
+                            <div className='flex gap-3'>
+                                <Button
+                                    variant='outline'
+                                    className='flex-1'
+                                    onClick={() => setShowSell(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    variant='brand'
+                                    className='flex-1'
+                                    disabled={
+                                        busy ||
+                                        !program ||
+                                        !publicKey ||
+                                        sellHoldingsLoading ||
+                                        sellHoldings.length === 0
+                                    }
+                                    onClick={() => void submitListTokens()}
+                                >
+                                    {busy ? '…' : 'Create listing'}
+                                </Button>
+                            </div>
+                        </GlassCard>
+                    </div>
+                </div>
+            )}
 
             {showBuy && (
                 <div

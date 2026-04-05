@@ -1,6 +1,7 @@
 'use client'
 
 import { GlassCard } from '@/components/GlassCard'
+import { PurchaseSuccessModal } from '@/components/PurchaseSuccessModal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -27,16 +28,11 @@ import { useRevshareProgram } from '@/lib/solana/useRevshareProgram'
 import { BN } from '@coral-xyz/anchor'
 import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import {
-    Keypair,
-    PublicKey,
-    SystemProgram,
-    SYSVAR_RENT_PUBKEY,
-} from '@solana/web3.js'
+import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js'
 import { ArrowLeft, Shield, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
     CartesianGrid,
     Line,
@@ -56,30 +52,51 @@ export default function BusinessDetailsPage() {
     const program = useRevshareProgram()
 
     const [activeTab, setActiveTab] = useState('overview')
-    const [tokenAmount, setTokenAmount] = useState(10)
+    const [tokenAmount, setTokenAmount] = useState(1)
     const [showBuyModal, setShowBuyModal] = useState(false)
     const [business, setBusiness] = useState<Business | null>(null)
     const [listings, setListings] = useState<TokenListingDto[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [txBusy, setTxBusy] = useState(false)
+    const [purchaseDone, setPurchaseDone] = useState<{
+        signature: string
+        tokens: number
+        totalSol: number
+        businessName: string
+        variantLabel: string
+    } | null>(null)
     const [poolPk] = useState(() => new PublicKey(pubkeyStr))
+    const loadGenRef = useRef(0)
 
     const load = useCallback(async () => {
+        const gen = ++loadGenRef.current
         setLoading(true)
         setError(null)
         const res = await fetchBusiness(pubkeyStr)
+        if (gen !== loadGenRef.current) return
         if (!res.success || !res.data) {
             setError(res.error || 'Business not found')
             setBusiness(null)
             setLoading(false)
             return
         }
-        const pool = await fetchBusinessPoolAccount(connection, poolPk)
+        const poolA = await fetchBusinessPoolAccount(connection, poolPk)
+        if (gen !== loadGenRef.current) return
+        const poolB = await fetchBusinessPoolAccount(connection, poolPk)
+        if (gen !== loadGenRef.current) return
+        let pool = poolA
+        if (poolA && poolB) {
+            pool = poolB.tokensSold.gte(poolA.tokensSold) ? poolB : poolA
+        } else {
+            pool = poolB ?? poolA
+        }
         const hist = await fetchRevenueHistory(pubkeyStr)
+        if (gen !== loadGenRef.current) return
         const rev = hist.success && hist.data ? hist.data : undefined
         setBusiness(profileToBusiness(res.data, pool, rev))
         const ml = await fetchListingsForBusiness(pubkeyStr)
+        if (gen !== loadGenRef.current) return
         if (ml.success && ml.data) {
             setListings(ml.data.filter((l) => l.status === 0))
         } else {
@@ -91,6 +108,12 @@ export default function BusinessDetailsPage() {
     useEffect(() => {
         load()
     }, [load])
+
+    useEffect(() => {
+        if (!business || business.totalTokens <= 0) return
+        const max = Math.max(1, business.tokensLeft)
+        setTokenAmount((prev) => Math.min(prev, max))
+    }, [business?.tokensLeft, business?.totalTokens])
 
     if (loading) {
         return (
@@ -175,6 +198,13 @@ export default function BusinessDetailsPage() {
                 investorTokenAccount.toBase58(),
             )
             setShowBuyModal(false)
+            setPurchaseDone({
+                signature: sig,
+                tokens: amountClamped,
+                totalSol: totalCostSol,
+                businessName: business?.name ?? 'Business',
+                variantLabel: 'Primary pool',
+            })
             await load()
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Transaction failed')
@@ -215,6 +245,10 @@ export default function BusinessDetailsPage() {
                 tokenMintPda,
                 publicKey,
             )
+            const totalLamports = onChainListing.amount.mul(
+                onChainListing.pricePerToken,
+            )
+            const totalSolPaid = lamportsToSol(totalLamports.toNumber())
             const sig = await program.methods
                 .buyListedTokens()
                 .accounts({
@@ -236,6 +270,13 @@ export default function BusinessDetailsPage() {
                 businessPoolPda.toBase58(),
                 buyerTokenAccount.toBase58(),
             )
+            setPurchaseDone({
+                signature: sig,
+                tokens: onChainListing.amount.toNumber(),
+                totalSol: totalSolPaid,
+                businessName: business?.name ?? 'Business',
+                variantLabel: 'Marketplace listing',
+            })
             await load()
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Buy failed')
@@ -544,6 +585,16 @@ export default function BusinessDetailsPage() {
                     )}
                 </GlassCard>
             )}
+
+            <PurchaseSuccessModal
+                open={!!purchaseDone}
+                onClose={() => setPurchaseDone(null)}
+                businessName={purchaseDone?.businessName ?? ''}
+                tokens={purchaseDone?.tokens ?? 0}
+                totalSol={purchaseDone?.totalSol ?? 0}
+                signature={purchaseDone?.signature ?? ''}
+                variantLabel={purchaseDone?.variantLabel}
+            />
 
             {showBuyModal && (
                 <div

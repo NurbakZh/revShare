@@ -11,13 +11,19 @@ namespace tests.Tests;
 public class BusinessServiceTests
 {
     private readonly Mock<IBusinessRepository> _businessRepoMock;
+    private readonly Mock<IUserRepository> _userRepoMock;
     private readonly BusinessService _businessService;
 
     public BusinessServiceTests()
     {
         _businessRepoMock = new Mock<IBusinessRepository>();
+        _userRepoMock = new Mock<IUserRepository>();
+        _userRepoMock
+            .Setup(x => x.GetByPubkeyAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserProfile?)null);
         _businessService = new BusinessService(
             _businessRepoMock.Object,
+            _userRepoMock.Object,
             NullLogger<BusinessService>.Instance);
     }
 

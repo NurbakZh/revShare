@@ -7,9 +7,11 @@ namespace oracle.Services;
 
 public class BusinessService(
     IBusinessRepository businessRepository,
+    IUserRepository userRepository,
     ILogger<BusinessService> logger) : IBusinessService
 {
     private readonly IBusinessRepository _businessRepository = businessRepository;
+    private readonly IUserRepository _userRepository = userRepository;
     private readonly ILogger<BusinessService> _logger = logger;
 
     public async Task<Result<BusinessProfile>> GetByPubkeyAsync(
@@ -49,6 +51,14 @@ public class BusinessService(
 
         await _businessRepository.AddAsync(business, ct);
         await _businessRepository.SaveChangesAsync(ct);
+
+        var ownerUser = await _userRepository.GetByPubkeyAsync(dto.OwnerPubkey, ct);
+        if (ownerUser is not null)
+        {
+            ownerUser.MarkHasBusiness();
+            await _userRepository.UpdateAsync(ownerUser, ct);
+            await _userRepository.SaveChangesAsync(ct);
+        }
 
         _logger.LogInformation("Business registered: {Pubkey}", dto.Pubkey);
         return Result<BusinessProfile>.Ok(business);

@@ -2,7 +2,8 @@
 
 import { GlassCard } from '@/components/GlassCard'
 import { Button } from '@/components/ui/button'
-import { fetchUser, registerUser } from '@/lib/api/oracle'
+import { fetchBusinessesByOwner, fetchUser, registerUser } from '@/lib/api/oracle'
+import type { BusinessProfile } from '@/lib/api/types'
 import { useAppStore } from '@/lib/store'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import { useWallet } from '@solana/wallet-adapter-react'
@@ -14,6 +15,9 @@ export default function ProfilePage() {
     const { publicKey, connected, disconnect } = useWallet()
     const { hasBusiness, setHasBusiness } = useAppStore()
     const [name, setName] = useState('')
+    const [ownedBusinesses, setOwnedBusinesses] = useState<BusinessProfile[]>(
+        [],
+    )
     const [loading, setLoading] = useState(false)
     const [mounted, setMounted] = useState(false)
 
@@ -24,20 +28,26 @@ export default function ProfilePage() {
     const syncUser = useCallback(async () => {
         if (!publicKey) return
         setLoading(true)
+        let nameFromApi = ''
+        let userFlag = false
         const r = await fetchUser(publicKey.toBase58())
         if (r.success && r.data) {
-            setName(r.data.name)
-            setHasBusiness(r.data.hasBusiness)
+            nameFromApi = r.data.name
+            userFlag = r.data.hasBusiness
         } else {
             const reg = await registerUser({
                 pubkey: publicKey.toBase58(),
                 name: `User ${publicKey.toBase58().slice(0, 4)}`,
             })
             if (reg.success && reg.data) {
-                setName(reg.data.name)
-                setHasBusiness(reg.data.hasBusiness)
+                nameFromApi = reg.data.name
+                userFlag = reg.data.hasBusiness
             }
         }
+        setName(nameFromApi)
+        const owned = await fetchBusinessesByOwner(publicKey.toBase58())
+        setOwnedBusinesses(owned)
+        setHasBusiness(userFlag || owned.length > 0)
         setLoading(false)
     }, [publicKey, setHasBusiness])
 
@@ -116,9 +126,34 @@ export default function ProfilePage() {
                         </div>
 
                         {hasBusiness ? (
-                            <p className='text-muted-foreground'>
-                                Linked to a business. Use the business dashboard.
-                            </p>
+                            <div className='space-y-4'>
+                                <p className='text-muted-foreground'>
+                                    {ownedBusinesses.length > 0
+                                        ? 'Your registered business pools (from the API):'
+                                        : 'Your profile is marked as having a business. Open the dashboard to manage it.'}
+                                </p>
+                                {ownedBusinesses.length > 0 && (
+                                    <ul className='space-y-2'>
+                                        {ownedBusinesses.map((b) => (
+                                            <li key={b.pubkey}>
+                                                <Link
+                                                    href={`/business/${b.pubkey}`}
+                                                    className='font-semibold text-primary hover:underline'
+                                                >
+                                                    {b.name}
+                                                </Link>
+                                                <span className='ml-2 font-mono text-xs text-muted-foreground'>
+                                                    {b.pubkey.slice(0, 6)}…
+                                                    {b.pubkey.slice(-4)}
+                                                </span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                                <Button variant='outline' asChild>
+                                    <Link href='/dashboard'>Business dashboard</Link>
+                                </Button>
+                            </div>
                         ) : (
                             <div className='py-8 text-center'>
                                 <Building2

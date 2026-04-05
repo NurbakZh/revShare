@@ -36,6 +36,7 @@ export function BusinessDashboard() {
     const [busy, setBusy] = useState(false)
     const [msg, setMsg] = useState<string | null>(null)
     const [showSim, setShowSim] = useState(false)
+    const [vaultLamports, setVaultLamports] = useState<number | null>(null)
 
     const load = useCallback(async () => {
         if (!publicKey) {
@@ -69,11 +70,15 @@ export function BusinessDashboard() {
     const refreshPool = useCallback(async () => {
         if (!poolPk) {
             setPool(null)
+            setVaultLamports(null)
             return
         }
         const pk = new PublicKey(poolPk)
         const p = await fetchBusinessPoolAccount(connection, pk)
         setPool(p)
+        const [vaultPda] = getVaultPda(pk)
+        const vaultInfo = await connection.getAccountInfo(vaultPda)
+        setVaultLamports(vaultInfo?.lamports ?? null)
         const hist = await fetchRevenueHistory(poolPk)
         if (hist.success && hist.data?.length) {
             setChart(
@@ -101,6 +106,28 @@ export function BusinessDashboard() {
         setShowSim(false)
         await refreshPool()
         setBusy(false)
+    }
+
+    async function onUnlockFirstTranche() {
+        if (!program || !publicKey || !poolPk) return
+        setBusy(true)
+        setMsg(null)
+        try {
+            const businessPoolPda = new PublicKey(poolPk)
+            const sig = await program.methods
+                .unlockFirstTranche()
+                .accounts({
+                    owner: publicKey,
+                    businessPool: businessPoolPda,
+                })
+                .rpc()
+            setMsg(`First tranche unlocked: ${sig.slice(0, 16)}…`)
+            await refreshPool()
+        } catch (e) {
+            setMsg(e instanceof Error ? e.message : 'Unlock failed')
+        } finally {
+            setBusy(false)
+        }
     }
 
     async function onRelease() {
@@ -167,6 +194,46 @@ export function BusinessDashboard() {
         ? lamportsToSol(pool.raiseLimit.toNumber())
         : 0
     const fr = pool?.fundsReleased.toNumber() ?? 0
+    const isOwner =
+        !!pool && !!publicKey && pool.owner.equals(publicKey)
+    const selloutComplete =
+        !!pool &&
+        !pool.totalTokens.isZero() &&
+        pool.tokensSold.gte(pool.totalTokens)
+    const totalRaisedLamports =
+        pool && !pool.tokensSold.isZero()
+            ? pool.tokensSold.toNumber() * pool.tokenPrice.toNumber()
+            : 0
+    const raiseCapLamports = pool ? pool.raiseLimit.toNumber() : 0
+    const raiseCapReached =
+        !!pool &&
+        raiseCapLamports > 0 &&
+        totalRaisedLamports >= raiseCapLamports
+    const canSyncFirstTranche =
+        !!program &&
+        isOwner &&
+        fr === 0 &&
+        (selloutComplete || raiseCapReached)
+    /** On-chain `release_funds` only allows 40 (first) or 70 (second tranche flag). */
+    const releaseStagePct = fr === 40 ? 40 : fr === 70 ? 30 : 0
+    const expectedReleaseLamports =
+        releaseStagePct > 0
+            ? Math.floor((totalRaisedLamports * releaseStagePct) / 100)
+            : 0
+    const vaultCoversRelease =
+        vaultLamports === null ||
+        expectedReleaseLamports === 0 ||
+        vaultLamports >= expectedReleaseLamports
+    const canRequestRelease =
+        !!program &&
+        isOwner &&
+        (fr === 40 || fr === 70) &&
+        vaultCoversRelease
+    const msgLooksError =
+        !!msg &&
+        /fail|error|insufficient|rejected|simulation|0x|wrong|constraint/i.test(
+            msg,
+        )
 
     return (
         <div className='container mx-auto px-4 py-8 '>
@@ -192,7 +259,15 @@ export function BusinessDashboard() {
             </div>
 
             {msg && (
-                <p className='mt-4 text-sm text-muted-foreground'>{msg}</p>
+                <p
+                    className={
+                        msgLooksError
+                            ? 'mt-4 text-sm text-red-500'
+                            : 'mt-4 text-sm text-muted-foreground'
+                    }
+                >
+                    {msg}
+                </p>
             )}
 
             <div className='mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4'>
@@ -246,7 +321,8 @@ export function BusinessDashboard() {
                         {fr}%
                     </div>
                     <p className='mt-2 text-sm text-muted-foreground'>
-                        Funds released flag
+                        Release stage (0 → 40 after sellout, 70 after 1st revenue
+                        epoch)
                     </p>
                 </GlassCard>
             </div>
@@ -254,15 +330,105 @@ export function BusinessDashboard() {
             <GlassCard className='mt-8 p-8'>
                 <h2 className='mb-4 text-xl font-bold'>Release tranche</h2>
                 <p className='mb-4 text-sm text-muted-foreground'>
-                    Tranche unlock per program rules.
+                    The program sends a slice of <strong>total raised</strong>{' '}
+                    SOL from the pool vault to you. The first tranche (40% flag)
+                    unlocks when primary sales are done: either{' '}
+                    <strong>all tokens</strong> are minted, or the{' '}
+                    <strong>raise cap</strong> is reached (no more primary buys
+                    allowed). Second tranche: <strong>30%</strong> after the
+                    oracle records the first revenue epoch (flag moves to 70%).
                 </p>
+                {!isOwner && pool ? (
+                    <p className='mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200'>
+                        This wallet is not the on-chain pool owner. Connect{' '}
+                        <span className='font-mono text-xs'>
+                            {pool.owner.toBase58()}
+                        </span>{' '}
+                        to release funds.
+                    </p>
+                ) : null}
+                {isOwner && fr === 0 ? (
+                    <div className='mb-4 space-y-3'>
+                        <p className='rounded-xl border border-border bg-accent/30 px-4 py-3 text-sm text-foreground'>
+                            {raiseCapReached && !selloutComplete ? (
+                                <>
+                                    Raise cap is reached (
+                                    {lamportsToSol(totalRaisedLamports).toFixed(4)}{' '}
+                                    / {raiseCapSol.toFixed(4)} SOL) but not every
+                                    token was minted (
+                                    {pool?.tokensSold.toString() ?? '—'} /{' '}
+                                    {pool?.totalTokens.toString() ?? '—'}). Older
+                                    programs did not set the 40% flag in this
+                                    case — use &quot;Sync first tranche&quot;
+                                    below (needs updated program on-chain).
+                                </>
+                            ) : selloutComplete ? (
+                                <>
+                                    All tokens are sold on-chain, but{' '}
+                                    <code>fundsReleased</code> is still 0. Try
+                                    &quot;Sync first tranche&quot; or refresh; if
+                                    it persists, confirm program deployment.
+                                </>
+                            ) : (
+                                <>
+                                    First tranche is not unlocked yet. Primary
+                                    sales: {pool?.tokensSold.toString() ?? '—'} /{' '}
+                                    {pool?.totalTokens.toString() ?? '—'} tokens;{' '}
+                                    cap {raiseCapSol.toFixed(4)} SOL (
+                                    {raisedSol.toFixed(4)} raised). Unlock
+                                    appears when mint is complete{' '}
+                                    <strong>or</strong> the raise cap is hit.
+                                </>
+                            )}
+                        </p>
+                        {canSyncFirstTranche ? (
+                            <Button
+                                variant='outline'
+                                disabled={busy}
+                                onClick={() => void onUnlockFirstTranche()}
+                            >
+                                {busy ? '…' : 'Sync first tranche (set 40%)'}
+                            </Button>
+                        ) : null}
+                    </div>
+                ) : null}
+                {isOwner && (fr === 40 || fr === 70) ? (
+                    <ul className='mb-4 space-y-1 text-sm text-muted-foreground'>
+                        <li>
+                            This request transfers ~{' '}
+                            <strong className='text-foreground'>
+                                {lamportsToSol(expectedReleaseLamports).toFixed(6)}
+                            </strong>{' '}
+                            SOL ({releaseStagePct}% of total raised).
+                        </li>
+                        <li>
+                            Vault balance (approx.):{' '}
+                            {vaultLamports === null
+                                ? '…'
+                                : `${lamportsToSol(vaultLamports).toFixed(6)} SOL`}
+                        </li>
+                        {!vaultCoversRelease && vaultLamports !== null ? (
+                            <li className='text-red-400'>
+                                Vault may be too low for this transfer (needs
+                                rent + payout). Investors may not have paid
+                                enough in yet.
+                            </li>
+                        ) : null}
+                    </ul>
+                ) : null}
                 <Button
                     variant='brand'
-                    disabled={busy || !program || fr === 0}
+                    disabled={busy || !canRequestRelease}
                     onClick={onRelease}
                 >
-                    Request release
+                    {busy ? '…' : 'Request release'}
                 </Button>
+                {isOwner && fr !== 0 && fr !== 40 && fr !== 70 ? (
+                    <p className='mt-2 text-xs text-muted-foreground'>
+                        Release stage is {fr}. This deployment expects 40 (first
+                        tranche) or 70 (second tranche) to withdraw.
+                    </p>
+                ) : null}
             </GlassCard>
 
             <GlassCard className='mt-8 p-8'>

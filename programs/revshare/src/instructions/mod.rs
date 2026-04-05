@@ -6,3 +6,4 @@ pub mod list_tokens;
 pub mod buy_listed_tokens;
 pub mod cancel_listing;
 pub mod release_funds;
+pub mod unlock_first_tranche;
