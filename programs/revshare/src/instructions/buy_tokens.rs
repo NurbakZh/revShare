@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
+use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
 use crate::state::{BusinessPool, HolderClaim};
 use crate::errors::RevShareError;
@@ -35,8 +36,8 @@ pub struct BuyTokens<'info> {
     #[account(
         init_if_needed,
         payer = investor,
-        token::mint = token_mint,
-        token::authority = investor,
+        associated_token::mint = token_mint,
+        associated_token::authority = investor,
     )]
     pub investor_token_account: Account<'info, TokenAccount>,
 
@@ -49,6 +50,7 @@ pub struct BuyTokens<'info> {
     pub vault: UncheckedAccount<'info>,
 
     pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
 }

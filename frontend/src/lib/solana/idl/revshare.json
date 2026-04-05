@@ -40,6 +40,7 @@
         { "name": "investorTokenAccount", "writable": true },
         { "name": "vault", "writable": true },
         { "name": "tokenProgram" },
+        { "name": "associatedTokenProgram" },
         { "name": "systemProgram" },
         { "name": "rent" }
       ],
@@ -101,6 +102,7 @@
         { "name": "buyerClaim", "writable": true },
         { "name": "buyerTokenAccount", "writable": true },
         { "name": "tokenProgram" },
+        { "name": "associatedTokenProgram" },
         { "name": "systemProgram" },
         { "name": "rent" }
       ],

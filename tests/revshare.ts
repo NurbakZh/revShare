@@ -9,7 +9,11 @@ import {
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
 } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddressSync,
+} from "@solana/spl-token";
 
 // ─────────────────────────────────────────────
 // Хелперы
@@ -44,9 +48,6 @@ describe("RevShare — полный флоу", () => {
   const buyer2Kp = Keypair.generate();
   const oracleKp = Keypair.generate();
 
-  // Токен аккаунты как keypair (нужно для init_if_needed)
-  const investorTokenKp = Keypair.generate();
-  const buyer2TokenKp = Keypair.generate();
   const investorEscrowKp = Keypair.generate();
   const buyer2EscrowKp = Keypair.generate();
 
@@ -68,6 +69,8 @@ describe("RevShare — полный флоу", () => {
   let holderClaimPda: PublicKey;
   let revenueEpoch0Pda: PublicKey;
   let tokenListingPda: PublicKey;
+  let investorTokenAta: PublicKey;
+  let buyer2TokenAta: PublicKey;
 
   before("Вычисляем PDA, airdrop", async () => {
     const sig1 = await conn.requestAirdrop(investorKp.publicKey, 3 * LAMPORTS_PER_SOL);
@@ -100,6 +103,21 @@ describe("RevShare — полный флоу", () => {
     tokenListingPda = pda(
       [Buffer.from("listing"), businessPoolPda.toBuffer(), investorKp.publicKey.toBuffer()],
       program.programId
+    );
+
+    investorTokenAta = getAssociatedTokenAddressSync(
+      tokenMintPda,
+      investorKp.publicKey,
+      false,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    buyer2TokenAta = getAssociatedTokenAddressSync(
+      tokenMintPda,
+      buyer2Kp.publicKey,
+      false,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
     );
 
     console.log("  investor:    ", investorKp.publicKey.toBase58());
@@ -224,13 +242,14 @@ describe("RevShare — полный флоу", () => {
           businessPool: businessPoolPda,
           tokenMint: tokenMintPda,
           holderClaim: holderClaimPda,
-          investorTokenAccount: investorTokenKp.publicKey,
+          investorTokenAccount: investorTokenAta,
           vault: vaultPda,
           tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
           rent: SYSVAR_RENT_PUBKEY,
         })
-        .signers([investorKp, investorTokenKp])
+        .signers([investorKp])
         .rpc()
     );
 
@@ -251,8 +270,6 @@ describe("RevShare — полный флоу", () => {
   // ТЕСТ 4: превышение лимита — негатив
   // ─────────────────────────────────────────────
   it("4. [негатив] buy_tokens — превышение raise_limit отклоняется", async () => {
-    const extraTokenKp = Keypair.generate();
-
     try {
       await program.methods
         .buyTokens(new BN(10_000))
@@ -261,13 +278,14 @@ describe("RevShare — полный флоу", () => {
           businessPool: businessPoolPda,
           tokenMint: tokenMintPda,
           holderClaim: holderClaimPda,
-          investorTokenAccount: extraTokenKp.publicKey,
+          investorTokenAccount: investorTokenAta,
           vault: vaultPda,
           tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
           rent: SYSVAR_RENT_PUBKEY,
         })
-        .signers([investorKp, extraTokenKp])
+        .signers([investorKp])
         .rpc();
 
       assert.fail("Должна была упасть ошибка");
@@ -452,7 +470,7 @@ describe("RevShare — полный флоу", () => {
           businessPool: businessPoolPda,
           tokenMint: tokenMintPda,
           tokenListing: tokenListingPda,
-          sellerTokenAccount: investorTokenKp.publicKey,
+          sellerTokenAccount: investorTokenAta,
           escrowTokenAccount: investorEscrowKp.publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
@@ -500,10 +518,6 @@ describe("RevShare — полный флоу", () => {
 
       assert.fail("Должна была упасть ошибка");
     } catch (err: any) {
-      // owner — это wallet провайдера, он подписывает автоматически.
-      // Контракт должен отклонить с OwnerCannotList.
-      // Но если sellerTokenAccount не инициализирован — падает раньше.
-      // Для хакатона достаточно проверить что транзакция не прошла.
       const blocked =
         err.message.includes("OwnerCannotList") ||
         err.message.includes("AccountNotInitialized") ||
@@ -534,12 +548,13 @@ describe("RevShare — полный флоу", () => {
           seller: investorKp.publicKey,
           escrowTokenAccount: investorEscrowKp.publicKey,
           buyerClaim: buyer2ClaimPda,
-          buyerTokenAccount: buyer2TokenKp.publicKey,
+          buyerTokenAccount: buyer2TokenAta,
           tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
           rent: SYSVAR_RENT_PUBKEY,
         })
-        .signers([buyer2Kp, buyer2TokenKp])
+        .signers([buyer2Kp])
         .rpc()
     );
 
