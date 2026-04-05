@@ -3,7 +3,7 @@
 import { HeaderNav } from '@/components/HeaderNav'
 import { RoleToggle } from '@/components/RoleToggle'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { fetchUser } from '@/lib/api/oracle'
+import { fetchBusinessesByOwner, fetchUser } from '@/lib/api/oracle'
 import { useAppStore } from '@/lib/store'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import { useWallet } from '@solana/wallet-adapter-react'
@@ -12,7 +12,7 @@ import React, { useEffect } from 'react'
 
 export function Header() {
     const { publicKey, connected } = useWallet()
-    const { hasBusiness, setHasBusiness } = useAppStore()
+    const { setHasBusiness } = useAppStore()
 
     useEffect(() => {
         if (!publicKey) {
@@ -20,10 +20,17 @@ export function Header() {
             return
         }
         let cancelled = false
-        fetchUser(publicKey.toBase58()).then((r) => {
+        ;(async () => {
+            const r = await fetchUser(publicKey.toBase58())
             if (cancelled) return
-            if (r.success && r.data) setHasBusiness(r.data.hasBusiness)
-        })
+            if (r.success && r.data?.hasBusiness) {
+                setHasBusiness(true)
+                return
+            }
+            const owned = await fetchBusinessesByOwner(publicKey.toBase58())
+            if (cancelled) return
+            setHasBusiness(owned.length > 0)
+        })()
         return () => {
             cancelled = true
         }
@@ -41,7 +48,7 @@ export function Header() {
                 <div className='flex items-center gap-6'>
                     <HeaderNav />
                     <div className='mx-2 h-8 w-[1px] bg-border' />
-                    {connected && hasBusiness && <RoleToggle />}
+                    {connected && <RoleToggle />}
                     <ThemeToggle />
                     {connected ? (
                         <div className='flex items-center gap-3'>

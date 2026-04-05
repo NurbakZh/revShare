@@ -1,24 +1,36 @@
-'use client';
+'use client'
 
-import { useAppStore } from '@/lib/store';
-import { cn } from '@/lib/utils';
-import { Building2, User } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useAppStore } from '@/lib/store'
+import type { UserRole } from '@/lib/store'
+import { cn } from '@/lib/utils'
+import { Building2, User } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 export function RoleToggle() {
-    const { role, setRole } = useAppStore();
-    const [mounted, setMounted] = useState(false);
+    const { role, setRole } = useAppStore()
+    const router = useRouter()
+    const pathname = usePathname()
+    const [mounted, setMounted] = useState(false)
 
     useEffect(() => {
-        setMounted(true);
-    }, []);
+        setMounted(true)
+    }, [])
 
-    if (!mounted) return <div className='h-10 w-[180px]' />;
+    function select(next: UserRole) {
+        setRole(next)
+        if (pathname !== '/dashboard') {
+            router.push('/dashboard')
+        }
+    }
+
+    if (!mounted) return <div className='h-10 w-[180px]' />
 
     return (
         <div className='flex rounded-xl border border-border bg-accent/50 p-1'>
             <button
-                onClick={() => setRole('investor')}
+                type='button'
+                onClick={() => select('investor')}
                 className={cn(
                     'flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-300',
                     role === 'investor'
@@ -30,7 +42,8 @@ export function RoleToggle() {
                 Investor
             </button>
             <button
-                onClick={() => setRole('business')}
+                type='button'
+                onClick={() => select('business')}
                 className={cn(
                     'flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-300',
                     role === 'business'
@@ -42,5 +55,5 @@ export function RoleToggle() {
                 Business
             </button>
         </div>
-    );
+    )
 }

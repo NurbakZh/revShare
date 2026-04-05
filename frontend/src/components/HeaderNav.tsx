@@ -1,27 +1,16 @@
-'use client';
+'use client'
 
-import { useAppStore } from '@/lib/store';
-import { cn } from '@/lib/utils';
-import { useWallet } from '@solana/wallet-adapter-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 export function HeaderNav() {
-    const { role } = useAppStore();
-    const { connected } = useWallet();
-    const pathname = usePathname();
+    const pathname = usePathname()
 
     const links = [
         { name: 'Marketplace', href: '/marketplace' },
-        {
-            name: 'Dashboard',
-            href: role === 'investor' ? '/investor' : '/business',
-        },
-    ];
-
-    if (connected) {
-        links.push({ name: 'Business', href: '/business' });
-    }
+        { name: 'Dashboard', href: '/dashboard' },
+    ]
 
     return (
         <div className='flex items-center gap-6'>
@@ -43,5 +32,5 @@ export function HeaderNav() {
                 </Link>
             ))}
         </div>
-    );
+    )
 }
