@@ -15,6 +15,11 @@ export default function ProfilePage() {
     const { hasBusiness, setHasBusiness } = useAppStore()
     const [name, setName] = useState('')
     const [loading, setLoading] = useState(false)
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
     const syncUser = useCallback(async () => {
         if (!publicKey) return
@@ -54,7 +59,14 @@ export default function ProfilePage() {
                     <p className='mb-6 text-muted-foreground'>
                         Connect Phantom. Profile syncs with the API.
                     </p>
-                    <WalletMultiButton className='!mx-auto !flex !rounded-xl !bg-gradient-to-r !from-purple-600 !to-blue-600 !text-white' />
+                    {!mounted ? (
+                        <div
+                            className='mx-auto h-10 max-w-xs animate-pulse rounded-xl bg-muted/40'
+                            aria-hidden
+                        />
+                    ) : (
+                        <WalletMultiButton className='!mx-auto !flex !rounded-xl !bg-gradient-to-r !from-purple-600 !to-blue-600 !text-white' />
+                    )}
                 </GlassCard>
             </div>
         )
