@@ -54,10 +54,15 @@ pub fn handler(ctx: Context<DistributeRevenue>, revenue_amount: u64) -> Result<(
     pool.current_epoch += 1;
     pool.total_distributed += distributed;
 
-    // Unlock second tranche after first distribution
-    if pool.current_epoch == 1 && pool.funds_released == 40 {
+    // Unlock second tranche after first distribution (50 = 40% already released)
+    if pool.current_epoch == 1 && pool.funds_released == 50 {
         pool.funds_released = 70;
         msg!("Second tranche unlocked: 70%");
+    }
+    // Unlock third tranche after second distribution (80 = 70% already released)
+    if pool.current_epoch == 2 && pool.funds_released == 80 {
+        pool.funds_released = 100;
+        msg!("Third tranche unlocked: 100%");
     }
 
     msg!("Epoch {} distributed: {} lamports", epoch.epoch_number, distributed);

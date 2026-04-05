@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program;
 use crate::state::BusinessPool;
 use crate::errors::RevShareError;
 
@@ -16,15 +15,14 @@ pub struct ReleaseFunds<'info> {
     )]
     pub business_pool: Account<'info, BusinessPool>,
 
-    /// CHECK: vault releases SOL to owner
+    /// CHECK: funds vault releases SOL to owner
     #[account(
         mut,
-        seeds = [b"vault", business_pool.key().as_ref()],
+        seeds = [b"funds_vault", business_pool.key().as_ref()],
         bump,
     )]
-    pub vault: UncheckedAccount<'info>,
+    pub funds_vault: UncheckedAccount<'info>,
 
-    pub system_program: Program<'info, System>,
 }
 
 pub fn handler(ctx: Context<ReleaseFunds>) -> Result<()> {
@@ -32,11 +30,13 @@ pub fn handler(ctx: Context<ReleaseFunds>) -> Result<()> {
 
     require!(pool.funds_released > 0, RevShareError::InsufficientCollateral);
 
-    let total_raised = pool.tokens_sold.checked_mul(pool.token_price).unwrap();
+    let total_raised = pool.total_raised;
 
     let tranche_pct: u64 = if pool.funds_released == 40 {
         40
     } else if pool.funds_released == 70 {
+        30
+    } else if pool.funds_released == 100 {
         30
     } else {
         return err!(RevShareError::InsufficientCollateral);
@@ -46,20 +46,17 @@ pub fn handler(ctx: Context<ReleaseFunds>) -> Result<()> {
         .checked_mul(tranche_pct).unwrap()
         .checked_div(100).unwrap();
 
-    let pool_key = pool.key();
-    let vault_bump = ctx.bumps.vault;
-    let seeds = &[b"vault".as_ref(), pool_key.as_ref(), &[vault_bump]];
-    let signer = &[&seeds[..]];
+    **ctx.accounts.funds_vault.try_borrow_mut_lamports()? -= release_amount;
+    **ctx.accounts.owner.try_borrow_mut_lamports()? += release_amount;
 
-    let cpi_ctx = CpiContext::new_with_signer(
-        ctx.accounts.system_program.to_account_info(),
-        system_program::Transfer {
-            from: ctx.accounts.vault.to_account_info(),
-            to: ctx.accounts.owner.to_account_info(),
-        },
-        signer,
-    );
-    system_program::transfer(cpi_ctx, release_amount)?;
+    // Update funds_released to prevent double release
+    if pool.funds_released == 40 {
+        pool.funds_released = 50; // 40% released
+    } else if pool.funds_released == 70 {
+        pool.funds_released = 80; // 70% released  
+    } else if pool.funds_released == 100 {
+        pool.funds_released = 110; // 100% released
+    }
 
     msg!("Released {}% = {} lamports to owner", tranche_pct, release_amount);
     Ok(())

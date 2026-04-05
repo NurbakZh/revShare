@@ -41,13 +41,13 @@ pub struct BuyTokens<'info> {
     )]
     pub investor_token_account: Account<'info, TokenAccount>,
 
-    /// CHECK: vault receives SOL
+    /// CHECK: funds vault receives SOL from token sales
     #[account(
         mut,
-        seeds = [b"vault", business_pool.key().as_ref()],
+        seeds = [b"funds_vault", business_pool.key().as_ref()],
         bump,
     )]
-    pub vault: UncheckedAccount<'info>,
+    pub funds_vault: UncheckedAccount<'info>,
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -67,16 +67,18 @@ pub fn handler(ctx: Context<BuyTokens>, amount: u64) -> Result<()> {
     let new_raised = (pool.tokens_sold + amount) * pool.token_price;
     require!(new_raised <= pool.raise_limit, RevShareError::RaiseLimitExceeded);
 
-    // Transfer SOL to vault
+    // Transfer SOL to funds vault
     let total_cost = amount.checked_mul(pool.token_price).unwrap();
     let cpi_ctx = CpiContext::new(
         ctx.accounts.system_program.to_account_info(),
         system_program::Transfer {
             from: ctx.accounts.investor.to_account_info(),
-            to: ctx.accounts.vault.to_account_info(),
+            to: ctx.accounts.funds_vault.to_account_info(),
         },
     );
     system_program::transfer(cpi_ctx, total_cost)?;
+
+    pool.total_raised += total_cost;
 
     // Mint tokens to investor
     let owner_key = pool.owner.clone();

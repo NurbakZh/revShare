@@ -22,7 +22,7 @@ import {
 import {
     getHolderClaimPda,
     getTokenMintPda,
-    getVaultPda,
+    getFundsVaultPda,
 } from '@/lib/solana/pda'
 import { useRevshareProgram } from '@/lib/solana/useRevshareProgram'
 import { BN } from '@coral-xyz/anchor'
@@ -169,7 +169,7 @@ export default function BusinessDetailsPage() {
             )
             if (!poolAcc) throw new Error('Pool account missing')
             const [tokenMintPda] = getTokenMintPda(businessPoolPda)
-            const [vaultPda] = getVaultPda(businessPoolPda)
+            const [fundsVaultPda] = getFundsVaultPda(businessPoolPda)
             const [holderClaimPda] = getHolderClaimPda(
                 businessPoolPda,
                 publicKey,
@@ -186,7 +186,7 @@ export default function BusinessDetailsPage() {
                     tokenMint: tokenMintPda,
                     holderClaim: holderClaimPda,
                     investorTokenAccount,
-                    vault: vaultPda,
+                    fundsVault: fundsVaultPda,
                     tokenProgram: TOKEN_PROGRAM_ID,
                     associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
                     systemProgram: SystemProgram.programId,

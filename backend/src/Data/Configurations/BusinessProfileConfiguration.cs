@@ -25,8 +25,7 @@ public class BusinessProfileConfiguration : IEntityTypeConfiguration<BusinessPro
             .IsRequired()
             .HasMaxLength(100);
 
-        builder.Property(x => x.Description)
-            .HasMaxLength(500);
+        builder.Property(x => x.Description);
 
         builder.Property(x => x.City)
             .HasMaxLength(100);

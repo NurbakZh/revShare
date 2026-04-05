@@ -41,8 +41,7 @@ namespace oracle.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<bool>("HasDefaulted")
                         .HasColumnType("boolean");

@@ -9,10 +9,10 @@ import {
     simulateRevenue,
 } from '@/lib/api/oracle'
 import { fetchBusinessPoolAccount, lamportsToSol } from '@/lib/solana/helpers'
-import { getVaultPda } from '@/lib/solana/pda'
+import { getFundsVaultPda } from '@/lib/solana/pda'
 import { useRevshareProgram } from '@/lib/solana/useRevshareProgram'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import { PublicKey, SystemProgram } from '@solana/web3.js'
+import { PublicKey } from '@solana/web3.js'
 import { DollarSign, TrendingUp, Unlock, Users, Zap } from 'lucide-react'
 import Link from 'next/link'
 import React, { useCallback, useEffect, useState } from 'react'
@@ -76,8 +76,8 @@ export function BusinessDashboard() {
         const pk = new PublicKey(poolPk)
         const p = await fetchBusinessPoolAccount(connection, pk)
         setPool(p)
-        const [vaultPda] = getVaultPda(pk)
-        const vaultInfo = await connection.getAccountInfo(vaultPda)
+        const [fundsVaultPda] = getFundsVaultPda(pk)
+        const vaultInfo = await connection.getAccountInfo(fundsVaultPda)
         setVaultLamports(vaultInfo?.lamports ?? null)
         const hist = await fetchRevenueHistory(poolPk)
         if (hist.success && hist.data?.length) {
@@ -136,14 +136,13 @@ export function BusinessDashboard() {
         setMsg(null)
         try {
             const businessPoolPda = new PublicKey(poolPk)
-            const [vaultPda] = getVaultPda(businessPoolPda)
+            const [fundsVaultPda] = getFundsVaultPda(businessPoolPda)
             const sig = await program.methods
                 .releaseFunds()
                 .accounts({
                     owner: publicKey,
                     businessPool: businessPoolPda,
-                    vault: vaultPda,
-                    systemProgram: SystemProgram.programId,
+                    fundsVault: fundsVaultPda,
                 })
                 .rpc()
             setMsg(`Released: ${sig.slice(0, 16)}…`)
@@ -214,8 +213,7 @@ export function BusinessDashboard() {
         isOwner &&
         fr === 0 &&
         (selloutComplete || raiseCapReached)
-    /** On-chain `release_funds` only allows 40 (first) or 70 (second tranche flag). */
-    const releaseStagePct = fr === 40 ? 40 : fr === 70 ? 30 : 0
+    const releaseStagePct = fr === 40 ? 40 : fr === 70 ? 30 : fr === 100 ? 30 : 0
     const expectedReleaseLamports =
         releaseStagePct > 0
             ? Math.floor((totalRaisedLamports * releaseStagePct) / 100)
@@ -227,7 +225,7 @@ export function BusinessDashboard() {
     const canRequestRelease =
         !!program &&
         isOwner &&
-        (fr === 40 || fr === 70) &&
+        (fr === 40 || fr === 70 || fr === 100) &&
         vaultCoversRelease
     const msgLooksError =
         !!msg &&

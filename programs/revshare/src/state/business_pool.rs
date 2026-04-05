@@ -16,6 +16,7 @@ pub struct BusinessPool {
     pub is_defaulted: bool,
     pub raise_limit: u64,
     pub funds_released: u64,
+    pub total_raised: u64,
     pub target_revenue: u64,
     pub bump: u8,
 }
@@ -28,11 +29,8 @@ impl BusinessPool {
         if self.funds_released != 0 {
             return;
         }
-        let Some(raised) = self.tokens_sold.checked_mul(self.token_price) else {
-            return;
-        };
         let sold_out = self.tokens_sold >= self.total_tokens;
-        let raise_cap_hit = raised >= self.raise_limit;
+        let raise_cap_hit = self.total_raised >= self.raise_limit;
         if sold_out || raise_cap_hit {
             self.funds_released = 40;
             msg!("First tranche unlocked: 40%");
@@ -54,6 +52,7 @@ impl BusinessPool {
         + 1   // is_defaulted
         + 8   // raise_limit
         + 8   // funds_released
+        + 8   // total_raised
         + 8   // target_revenue
         + 1;  // bump
 }

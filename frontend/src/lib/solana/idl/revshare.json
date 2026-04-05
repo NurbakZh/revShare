@@ -3,227 +3,1554 @@
   "metadata": {
     "name": "revshare",
     "version": "0.1.0",
-    "spec": "0.1.0"
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
   },
   "instructions": [
     {
-      "name": "initializeBusiness",
-      "discriminator": [224, 230, 190, 93, 141, 151, 35, 237],
+      "name": "buy_listed_tokens",
+      "discriminator": [
+        212,
+        5,
+        83,
+        233,
+        219,
+        25,
+        254,
+        215
+      ],
       "accounts": [
-        { "name": "owner", "writable": true, "signer": true },
-        { "name": "businessPool", "writable": true },
-        { "name": "tokenMint", "writable": true },
-        { "name": "vault", "writable": true },
-        { "name": "tokenProgram" },
-        { "name": "systemProgram" },
-        { "name": "rent" }
+        {
+          "name": "buyer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "business_pool",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool.owner",
+                "account": "BusinessPool"
+              },
+              {
+                "kind": "account",
+                "path": "business_pool.id",
+                "account": "BusinessPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_mint"
+        },
+        {
+          "name": "token_listing",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              },
+              {
+                "kind": "account",
+                "path": "token_listing.seller",
+                "account": "TokenListing"
+              }
+            ]
+          }
+        },
+        {
+          "name": "seller",
+          "writable": true
+        },
+        {
+          "name": "escrow_token_account",
+          "writable": true
+        },
+        {
+          "name": "buyer_claim",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              },
+              {
+                "kind": "account",
+                "path": "buyer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "buyer_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "buyer"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "token_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "buy_tokens",
+      "discriminator": [
+        189,
+        21,
+        230,
+        133,
+        247,
+        2,
+        110,
+        42
+      ],
+      "accounts": [
+        {
+          "name": "investor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "business_pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool.owner",
+                "account": "BusinessPool"
+              },
+              {
+                "kind": "account",
+                "path": "business_pool.id",
+                "account": "BusinessPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "holder_claim",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              },
+              {
+                "kind": "account",
+                "path": "investor"
+              }
+            ]
+          }
+        },
+        {
+          "name": "investor_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "investor"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "token_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "funds_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100,
+                  115,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
       ],
       "args": [
-        { "name": "id", "type": "u64" },
-        { "name": "totalTokens", "type": "u64" },
-        { "name": "tokenPrice", "type": "u64" },
-        { "name": "revenueShareBps", "type": "u16" },
-        { "name": "collateralAmount", "type": "u64" },
-        { "name": "raiseLimit", "type": "u64" },
-        { "name": "targetRevenue", "type": "u64" },
-        { "name": "oracleAuthority", "type": "pubkey" }
+        {
+          "name": "amount",
+          "type": "u64"
+        }
       ]
     },
     {
-      "name": "buyTokens",
-      "discriminator": [189, 21, 230, 133, 247, 2, 110, 42],
-      "accounts": [
-        { "name": "investor", "writable": true, "signer": true },
-        { "name": "businessPool", "writable": true },
-        { "name": "tokenMint", "writable": true },
-        { "name": "holderClaim", "writable": true },
-        { "name": "investorTokenAccount", "writable": true },
-        { "name": "vault", "writable": true },
-        { "name": "tokenProgram" },
-        { "name": "associatedTokenProgram" },
-        { "name": "systemProgram" },
-        { "name": "rent" }
+      "name": "cancel_listing",
+      "discriminator": [
+        41,
+        183,
+        50,
+        232,
+        230,
+        233,
+        157,
+        70
       ],
-      "args": [{ "name": "amount", "type": "u64" }]
-    },
-    {
-      "name": "distributeRevenue",
-      "discriminator": [94, 34, 239, 201, 147, 227, 29, 30],
       "accounts": [
-        { "name": "oracle", "writable": true, "signer": true },
-        { "name": "businessPool", "writable": true },
-        { "name": "revenueEpoch", "writable": true },
-        { "name": "systemProgram" }
+        {
+          "name": "seller",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "token_listing"
+          ]
+        },
+        {
+          "name": "business_pool",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool.owner",
+                "account": "BusinessPool"
+              },
+              {
+                "kind": "account",
+                "path": "business_pool.id",
+                "account": "BusinessPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_listing",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_token_account",
+          "writable": true
+        },
+        {
+          "name": "seller_claim",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              }
+            ]
+          }
+        },
+        {
+          "name": "seller_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
       ],
-      "args": [{ "name": "revenueAmount", "type": "u64" }]
+      "args": []
     },
     {
       "name": "claim",
-      "discriminator": [62, 198, 214, 193, 213, 159, 108, 210],
+      "discriminator": [
+        62,
+        198,
+        214,
+        193,
+        213,
+        159,
+        108,
+        210
+      ],
       "accounts": [
-        { "name": "investor", "writable": true, "signer": true },
-        { "name": "businessPool" },
-        { "name": "holderClaim", "writable": true },
-        { "name": "revenueEpoch" },
-        { "name": "vault", "writable": true },
-        { "name": "systemProgram" }
+        {
+          "name": "investor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "business_pool",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool.owner",
+                "account": "BusinessPool"
+              },
+              {
+                "kind": "account",
+                "path": "business_pool.id",
+                "account": "BusinessPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "holder_claim",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              },
+              {
+                "kind": "account",
+                "path": "investor"
+              }
+            ]
+          }
+        },
+        {
+          "name": "revenue_epoch",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  112,
+                  111,
+                  99,
+                  104
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              },
+              {
+                "kind": "account",
+                "path": "holder_claim.last_claimed_epoch",
+                "account": "HolderClaim"
+              }
+            ]
+          }
+        },
+        {
+          "name": "funds_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100,
+                  115,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              }
+            ]
+          }
+        }
       ],
       "args": []
     },
     {
-      "name": "listTokens",
-      "discriminator": [78, 130, 172, 175, 203, 30, 76, 177],
+      "name": "distribute_revenue",
+      "discriminator": [
+        94,
+        34,
+        239,
+        201,
+        147,
+        227,
+        29,
+        30
+      ],
       "accounts": [
-        { "name": "seller", "writable": true, "signer": true },
-        { "name": "businessPool" },
-        { "name": "tokenMint" },
-        { "name": "tokenListing", "writable": true },
-        { "name": "sellerTokenAccount", "writable": true },
-        { "name": "escrowTokenAccount", "writable": true },
-        { "name": "tokenProgram" },
-        { "name": "systemProgram" },
-        { "name": "rent" }
+        {
+          "name": "oracle",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "business_pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool.owner",
+                "account": "BusinessPool"
+              },
+              {
+                "kind": "account",
+                "path": "business_pool.id",
+                "account": "BusinessPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "revenue_epoch",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  112,
+                  111,
+                  99,
+                  104
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              },
+              {
+                "kind": "account",
+                "path": "business_pool.current_epoch",
+                "account": "BusinessPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
       ],
       "args": [
-        { "name": "amount", "type": "u64" },
-        { "name": "pricePerToken", "type": "u64" }
+        {
+          "name": "revenue_amount",
+          "type": "u64"
+        }
       ]
     },
     {
-      "name": "buyListedTokens",
-      "discriminator": [212, 5, 83, 233, 219, 25, 254, 215],
+      "name": "initialize_business",
+      "discriminator": [
+        224,
+        230,
+        190,
+        93,
+        141,
+        151,
+        35,
+        237
+      ],
       "accounts": [
-        { "name": "buyer", "writable": true, "signer": true },
-        { "name": "businessPool" },
-        { "name": "tokenMint" },
-        { "name": "tokenListing", "writable": true },
-        { "name": "seller", "writable": true },
-        { "name": "escrowTokenAccount", "writable": true },
-        { "name": "buyerClaim", "writable": true },
-        { "name": "buyerTokenAccount", "writable": true },
-        { "name": "tokenProgram" },
-        { "name": "associatedTokenProgram" },
-        { "name": "systemProgram" },
-        { "name": "rent" }
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "business_pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "params.id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "collateral_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  108,
+                  108,
+                  97,
+                  116,
+                  101,
+                  114,
+                  97,
+                  108,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "funds_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100,
+                  115,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "InitBusinessParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "list_tokens",
+      "discriminator": [
+        78,
+        130,
+        172,
+        175,
+        203,
+        30,
+        76,
+        177
+      ],
+      "accounts": [
+        {
+          "name": "seller",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "business_pool",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool.owner",
+                "account": "BusinessPool"
+              },
+              {
+                "kind": "account",
+                "path": "business_pool.id",
+                "account": "BusinessPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_mint"
+        },
+        {
+          "name": "token_listing",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  115,
+                  116,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              }
+            ]
+          }
+        },
+        {
+          "name": "seller_claim",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              },
+              {
+                "kind": "account",
+                "path": "seller"
+              }
+            ]
+          }
+        },
+        {
+          "name": "seller_token_account",
+          "writable": true
+        },
+        {
+          "name": "escrow_token_account",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "price_per_token",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "release_funds",
+      "discriminator": [
+        225,
+        88,
+        91,
+        108,
+        126,
+        52,
+        2,
+        26
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "business_pool"
+          ]
+        },
+        {
+          "name": "business_pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "business_pool.id",
+                "account": "BusinessPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "funds_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100,
+                  115,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              }
+            ]
+          }
+        }
       ],
       "args": []
     },
     {
-      "name": "cancelListing",
-      "discriminator": [41, 183, 50, 232, 230, 233, 157, 70],
-      "accounts": [
-        { "name": "seller", "writable": true, "signer": true },
-        { "name": "businessPool" },
-        { "name": "tokenListing", "writable": true },
-        { "name": "escrowTokenAccount", "writable": true },
-        { "name": "sellerTokenAccount", "writable": true },
-        { "name": "tokenProgram" }
+      "name": "unlock_first_tranche",
+      "discriminator": [
+        204,
+        61,
+        224,
+        70,
+        106,
+        49,
+        211,
+        253
       ],
-      "args": []
-    },
-    {
-      "name": "releaseFunds",
-      "discriminator": [225, 88, 91, 108, 126, 52, 2, 26],
       "accounts": [
-        { "name": "owner", "writable": true, "signer": true },
-        { "name": "businessPool", "writable": true },
-        { "name": "vault", "writable": true },
-        { "name": "systemProgram" }
-      ],
-      "args": []
-    },
-    {
-      "name": "unlockFirstTranche",
-      "discriminator": [204, 61, 224, 70, 106, 49, 211, 253],
-      "accounts": [
-        { "name": "owner", "writable": true, "signer": true },
-        { "name": "businessPool", "writable": true }
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "business_pool"
+          ]
+        },
+        {
+          "name": "business_pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  115,
+                  105,
+                  110,
+                  101,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "business_pool.id",
+                "account": "BusinessPool"
+              }
+            ]
+          }
+        }
       ],
       "args": []
     }
   ],
   "accounts": [
     {
-      "name": "businessPool",
-      "discriminator": [42, 124, 96, 117, 230, 150, 132, 168]
+      "name": "BusinessPool",
+      "discriminator": [
+        42,
+        124,
+        96,
+        117,
+        230,
+        150,
+        132,
+        168
+      ]
     },
     {
-      "name": "holderClaim",
-      "discriminator": [14, 44, 53, 107, 50, 118, 217, 201]
+      "name": "HolderClaim",
+      "discriminator": [
+        14,
+        44,
+        53,
+        107,
+        50,
+        118,
+        217,
+        201
+      ]
     },
     {
-      "name": "revenueEpoch",
-      "discriminator": [92, 96, 185, 132, 167, 75, 54, 150]
+      "name": "RevenueEpoch",
+      "discriminator": [
+        92,
+        96,
+        185,
+        132,
+        167,
+        75,
+        54,
+        150
+      ]
     },
     {
-      "name": "tokenListing",
-      "discriminator": [177, 235, 242, 219, 140, 19, 11, 82]
+      "name": "TokenListing",
+      "discriminator": [
+        177,
+        235,
+        242,
+        219,
+        140,
+        19,
+        11,
+        82
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "UnauthorizedOracle",
+      "msg": "Unauthorized oracle"
+    },
+    {
+      "code": 6001,
+      "name": "InsufficientCollateral",
+      "msg": "Insufficient collateral"
+    },
+    {
+      "code": 6002,
+      "name": "BusinessDefaulted",
+      "msg": "Business is defaulted"
+    },
+    {
+      "code": 6003,
+      "name": "NoTokensAvailable",
+      "msg": "No tokens available"
+    },
+    {
+      "code": 6004,
+      "name": "AlreadyClaimed",
+      "msg": "Already claimed this epoch"
+    },
+    {
+      "code": 6005,
+      "name": "RaiseLimitExceeded",
+      "msg": "Raise limit exceeded"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidRevenueShareBps",
+      "msg": "Invalid revenue share basis points"
+    },
+    {
+      "code": 6007,
+      "name": "OwnerCannotList",
+      "msg": "Business owner cannot list tokens"
+    },
+    {
+      "code": 6008,
+      "name": "ListingNotActive",
+      "msg": "Listing is not active"
+    },
+    {
+      "code": 6009,
+      "name": "InsufficientTokensToList",
+      "msg": "Insufficient tokens to list"
     }
   ],
   "types": [
     {
-      "name": "businessPool",
+      "name": "BusinessPool",
       "type": {
         "kind": "struct",
         "fields": [
-          { "name": "owner", "type": "pubkey" },
-          { "name": "oracleAuthority", "type": "pubkey" },
-          { "name": "tokenMint", "type": "pubkey" },
-          { "name": "id", "type": "u64" },
-          { "name": "totalTokens", "type": "u64" },
-          { "name": "tokensSold", "type": "u64" },
-          { "name": "revenueShareBps", "type": "u16" },
-          { "name": "collateral", "type": "u64" },
-          { "name": "tokenPrice", "type": "u64" },
-          { "name": "currentEpoch", "type": "u64" },
-          { "name": "totalDistributed", "type": "u64" },
-          { "name": "isDefaulted", "type": "bool" },
-          { "name": "raiseLimit", "type": "u64" },
-          { "name": "fundsReleased", "type": "u64" },
-          { "name": "targetRevenue", "type": "u64" },
-          { "name": "bump", "type": "u8" }
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "oracle_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "total_tokens",
+            "type": "u64"
+          },
+          {
+            "name": "tokens_sold",
+            "type": "u64"
+          },
+          {
+            "name": "revenue_share_bps",
+            "type": "u16"
+          },
+          {
+            "name": "collateral",
+            "type": "u64"
+          },
+          {
+            "name": "token_price",
+            "type": "u64"
+          },
+          {
+            "name": "current_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "total_distributed",
+            "type": "u64"
+          },
+          {
+            "name": "is_defaulted",
+            "type": "bool"
+          },
+          {
+            "name": "raise_limit",
+            "type": "u64"
+          },
+          {
+            "name": "funds_released",
+            "type": "u64"
+          },
+          {
+            "name": "total_raised",
+            "type": "u64"
+          },
+          {
+            "name": "target_revenue",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
         ]
       }
     },
     {
-      "name": "holderClaim",
+      "name": "HolderClaim",
       "type": {
         "kind": "struct",
         "fields": [
-          { "name": "holder", "type": "pubkey" },
-          { "name": "business", "type": "pubkey" },
-          { "name": "tokenHeld", "type": "u64" },
-          { "name": "lastClaimedEpoch", "type": "u64" },
-          { "name": "totalClaimed", "type": "u64" },
-          { "name": "bump", "type": "u8" }
+          {
+            "name": "holder",
+            "type": "pubkey"
+          },
+          {
+            "name": "business",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_held",
+            "type": "u64"
+          },
+          {
+            "name": "last_claimed_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "total_claimed",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
         ]
       }
     },
     {
-      "name": "revenueEpoch",
+      "name": "InitBusinessParams",
       "type": {
         "kind": "struct",
         "fields": [
-          { "name": "business", "type": "pubkey" },
-          { "name": "epochNumber", "type": "u64" },
-          { "name": "revenueAmount", "type": "u64" },
-          { "name": "distributedAmount", "type": "u64" },
-          { "name": "timestamp", "type": "i64" },
-          { "name": "bump", "type": "u8" }
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "total_tokens",
+            "type": "u64"
+          },
+          {
+            "name": "token_price",
+            "type": "u64"
+          },
+          {
+            "name": "revenue_share_bps",
+            "type": "u16"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "raise_limit",
+            "type": "u64"
+          },
+          {
+            "name": "target_revenue",
+            "type": "u64"
+          },
+          {
+            "name": "oracle_authority",
+            "type": "pubkey"
+          }
         ]
       }
     },
     {
-      "name": "tokenListing",
+      "name": "RevenueEpoch",
       "type": {
         "kind": "struct",
         "fields": [
-          { "name": "seller", "type": "pubkey" },
-          { "name": "business", "type": "pubkey" },
-          { "name": "amount", "type": "u64" },
-          { "name": "pricePerToken", "type": "u64" },
-          { "name": "isActive", "type": "bool" },
-          { "name": "bump", "type": "u8" }
+          {
+            "name": "business",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch_number",
+            "type": "u64"
+          },
+          {
+            "name": "revenue_amount",
+            "type": "u64"
+          },
+          {
+            "name": "distributed_amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TokenListing",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "seller",
+            "type": "pubkey"
+          },
+          {
+            "name": "business",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "price_per_token",
+            "type": "u64"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
         ]
       }
     }

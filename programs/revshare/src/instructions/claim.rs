@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program;
 use crate::state::{BusinessPool, HolderClaim, RevenueEpoch};
 use crate::errors::RevShareError;
 
@@ -31,15 +30,14 @@ pub struct Claim<'info> {
     )]
     pub revenue_epoch: Account<'info, RevenueEpoch>,
 
-    /// CHECK: vault sends SOL to investor
+    /// CHECK: funds vault sends SOL to investor
     #[account(
         mut,
-        seeds = [b"vault", business_pool.key().as_ref()],
+        seeds = [b"funds_vault", business_pool.key().as_ref()],
         bump,
     )]
-    pub vault: UncheckedAccount<'info>,
+    pub funds_vault: UncheckedAccount<'info>,
 
-    pub system_program: Program<'info, System>,
 }
 
 pub fn handler(ctx: Context<Claim>) -> Result<()> {
@@ -56,20 +54,8 @@ pub fn handler(ctx: Context<Claim>) -> Result<()> {
         .checked_mul(claim.token_held).unwrap()
         .checked_div(pool.total_tokens).unwrap();
 
-    let pool_key = pool.key();
-    let vault_bump = ctx.bumps.vault;
-    let seeds = &[b"vault".as_ref(), pool_key.as_ref(), &[vault_bump]];
-    let signer = &[&seeds[..]];
-
-    let cpi_ctx = CpiContext::new_with_signer(
-        ctx.accounts.system_program.to_account_info(),
-        system_program::Transfer {
-            from: ctx.accounts.vault.to_account_info(),
-            to: ctx.accounts.investor.to_account_info(),
-        },
-        signer,
-    );
-    system_program::transfer(cpi_ctx, investor_share)?;
+    **ctx.accounts.funds_vault.try_borrow_mut_lamports()? -= investor_share;
+    **ctx.accounts.investor.try_borrow_mut_lamports()? += investor_share;
 
     claim.last_claimed_epoch += 1;
     claim.total_claimed += investor_share;

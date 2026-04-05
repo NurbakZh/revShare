@@ -41,13 +41,27 @@ pub struct InitializeBusiness<'info> {
     )]
     pub token_mint: Account<'info, Mint>,
 
-    /// CHECK: vault PDA holds raised SOL
+    /// CHECK: collateral vault holds business collateral for investor protection
     #[account(
-        mut,
-        seeds = [b"vault", business_pool.key().as_ref()],
+        init,
+        payer = owner,
+        space = 0,
+        seeds = [b"collateral_vault", business_pool.key().as_ref()],
         bump,
+        owner = crate::id(),
     )]
-    pub vault: UncheckedAccount<'info>,
+    pub collateral_vault: UncheckedAccount<'info>,
+
+    /// CHECK: funds vault holds raised SOL from token sales
+    #[account(
+        init,
+        payer = owner,
+        space = 0,
+        seeds = [b"funds_vault", business_pool.key().as_ref()],
+        bump,
+        owner = crate::id(),
+    )]
+    pub funds_vault: UncheckedAccount<'info>,
 
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
@@ -83,15 +97,16 @@ pub fn handler(ctx: Context<InitializeBusiness>, params: InitBusinessParams) -> 
     pool.is_defaulted = false;
     pool.raise_limit = params.raise_limit;
     pool.funds_released = 0;
+    pool.total_raised = 0;
     pool.target_revenue = params.target_revenue;
     pool.bump = ctx.bumps.business_pool;
 
-    // Transfer collateral to vault
+    // Transfer collateral to collateral vault
     let cpi_ctx = CpiContext::new(
         ctx.accounts.system_program.to_account_info(),
         system_program::Transfer {
             from: ctx.accounts.owner.to_account_info(),
-            to: ctx.accounts.vault.to_account_info(),
+            to: ctx.accounts.collateral_vault.to_account_info(),
         },
     );
     system_program::transfer(cpi_ctx, params.collateral_amount)?;

@@ -45,6 +45,7 @@ export type DecodedBusinessPool = {
     isDefaulted: boolean
     raiseLimit: Bn
     fundsReleased: Bn
+    totalRaised: Bn
     targetRevenue: Bn
     bump: number
 }
@@ -76,8 +77,30 @@ export type DecodedRevenueEpoch = {
     bump: number
 }
 
+// Anchor 0.30+ IDLs use snake_case/PascalCase names; the BorshAccountsCoder
+// expects camelCase names matching what convertIdlToCamelCase (internal) produces.
+// We replicate that conversion here without importing internal Anchor modules.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const _cc = require('camelcase') as { default: (s: string, opts?: object) => string }
+const toCamel = (s: string) => _cc.default(s, { locale: false })
+
+function camelCaseIdl(obj: unknown): unknown {
+    const KEYS_TO_CONVERT = new Set(['name', 'path', 'account', 'relations', 'generic'])
+    if (Array.isArray(obj)) return obj.map(camelCaseIdl)
+    if (obj !== null && typeof obj === 'object') {
+        const result: Record<string, unknown> = {}
+        for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+            result[k] = KEYS_TO_CONVERT.has(k) && typeof v === 'string'
+                ? toCamel(v)
+                : camelCaseIdl(v)
+        }
+        return result
+    }
+    return obj
+}
+
 function accountsCoder() {
-    return new BorshAccountsCoder(getRevshareIdl())
+    return new BorshAccountsCoder(camelCaseIdl(getRevshareIdl()) as typeof rawIdl)
 }
 
 export async function fetchBusinessPoolAccount(

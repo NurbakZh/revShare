@@ -20,4 +20,6 @@ pub enum RevShareError {
     OwnerCannotList,
     #[msg("Listing is not active")]
     ListingNotActive,
+    #[msg("Insufficient tokens to list")]
+    InsufficientTokensToList,
 }

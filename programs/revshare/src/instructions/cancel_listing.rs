@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
-use crate::state::{BusinessPool, TokenListing};
+use crate::state::{BusinessPool, HolderClaim, TokenListing};
 
 #[derive(Accounts)]
 pub struct CancelListing<'info> {
@@ -23,6 +23,13 @@ pub struct CancelListing<'info> {
 
     #[account(mut)]
     pub escrow_token_account: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        seeds = [b"claim", business_pool.key().as_ref(), seller.key().as_ref()],
+        bump = seller_claim.bump,
+    )]
+    pub seller_claim: Account<'info, HolderClaim>,
 
     #[account(mut, token::authority = seller)]
     pub seller_token_account: Account<'info, TokenAccount>,
@@ -53,6 +60,7 @@ pub fn handler(ctx: Context<CancelListing>) -> Result<()> {
     token::transfer(cpi_ctx, listing.amount)?;
 
     listing.is_active = false;
+    ctx.accounts.seller_claim.token_held += listing.amount;
 
     msg!("Listing cancelled, {} tokens returned", listing.amount);
     Ok(())

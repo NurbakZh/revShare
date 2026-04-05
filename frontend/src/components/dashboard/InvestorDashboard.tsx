@@ -15,11 +15,11 @@ import {
 import {
     getHolderClaimPda,
     getRevenueEpochPda,
-    getVaultPda,
+    getFundsVaultPda,
 } from '@/lib/solana/pda'
 import { useRevshareProgram } from '@/lib/solana/useRevshareProgram'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import { PublicKey, SystemProgram } from '@solana/web3.js'
+import { PublicKey } from '@solana/web3.js'
 import { ArrowRight, MapPin, Wallet } from 'lucide-react'
 import Link from 'next/link'
 import React, { useCallback, useEffect, useState } from 'react'
@@ -114,7 +114,7 @@ export function InvestorDashboard() {
             if (!claim) throw new Error('No claim account')
             const epoch = claim.lastClaimedEpoch.toNumber()
             const [revenueEpochPda] = getRevenueEpochPda(businessPoolPda, epoch)
-            const [vaultPda] = getVaultPda(businessPoolPda)
+            const [fundsVaultPda] = getFundsVaultPda(businessPoolPda)
             const sig = await program.methods
                 .claim()
                 .accounts({
@@ -122,8 +122,7 @@ export function InvestorDashboard() {
                     businessPool: businessPoolPda,
                     holderClaim: holderClaimPda,
                     revenueEpoch: revenueEpochPda,
-                    vault: vaultPda,
-                    systemProgram: SystemProgram.programId,
+                    fundsVault: fundsVaultPda,
                 })
                 .rpc()
             setMsg(`Claim ok: ${sig.slice(0, 16)}…`)

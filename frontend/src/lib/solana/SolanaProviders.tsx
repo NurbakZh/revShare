@@ -27,7 +27,7 @@ const WMP = WalletModalProvider as React.FC<React.PropsWithChildren>
 export function SolanaProviders({ children }: { children: React.ReactNode }) {
     const endpoint = useMemo(() => getSolanaRpcUrl(), [])
     const wallets = useMemo(
-        () => [new PhantomWalletAdapter({ network: WalletAdapterNetwork.Devnet })],
+        () => [new PhantomWalletAdapter()],
         [],
     )
 

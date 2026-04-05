@@ -17,11 +17,22 @@ export function getTokenMintPda(businessPoolPda: PublicKey) {
     )
 }
 
-export function getVaultPda(businessPoolPda: PublicKey) {
+export function getCollateralVaultPda(businessPoolPda: PublicKey) {
     return PublicKey.findProgramAddressSync(
-        [Buffer.from('vault'), businessPoolPda.toBuffer()],
+        [Buffer.from('collateral_vault'), businessPoolPda.toBuffer()],
         getProgramId(),
     )
+}
+
+export function getFundsVaultPda(businessPoolPda: PublicKey) {
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from('funds_vault'), businessPoolPda.toBuffer()],
+        getProgramId(),
+    )
+}
+
+export function getVaultPda(businessPoolPda: PublicKey) {
+    return getFundsVaultPda(businessPoolPda)
 }
 
 export function getHolderClaimPda(

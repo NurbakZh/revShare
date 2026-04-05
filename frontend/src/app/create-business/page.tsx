@@ -10,12 +10,13 @@ import { useAppStore } from '@/lib/store'
 import {
     getBusinessPoolPda,
     getTokenMintPda,
-    getVaultPda,
+    getCollateralVaultPda,
+    getFundsVaultPda,
 } from '@/lib/solana/pda'
 import { useRevshareProgram } from '@/lib/solana/useRevshareProgram'
 import { BN } from '@coral-xyz/anchor'
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
-import { useWallet } from '@solana/wallet-adapter-react'
+import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import {
     PublicKey,
     SystemProgram,
@@ -27,9 +28,29 @@ import React, { useState } from 'react'
 
 const LAMPORTS_PER_SOL = 1_000_000_000
 
+function generateBusinessId() {
+    return Math.floor(Math.random() * 9_000_000_000_000_000)
+}
+
+async function findUnusedBusinessId(
+    owner: PublicKey,
+    connection: ReturnType<typeof useConnection>['connection'],
+) {
+    for (let i = 0; i < 5; i += 1) {
+        const businessId = generateBusinessId()
+        const [businessPoolPda] = getBusinessPoolPda(owner, businessId)
+        const existing = await connection.getAccountInfo(businessPoolPda)
+        if (!existing) {
+            return { businessId, businessPoolPda }
+        }
+    }
+    throw new Error('Unable to find an unused business pool id. Please retry.')
+}
+
 export default function CreateBusinessPage() {
     const router = useRouter()
     const { publicKey } = useWallet()
+    const { connection } = useConnection()
     const program = useRevshareProgram()
     const { setHasBusiness } = useAppStore()
     const [step, setStep] = useState(1)
@@ -88,25 +109,31 @@ export default function CreateBusinessPage() {
             const oracleAuthority = new PublicKey(
                 health.data.oraclePublicKey,
             )
-            const [businessPoolPda] = getBusinessPoolPda(publicKey, 0)
+            const { businessId, businessPoolPda } = await findUnusedBusinessId(
+                publicKey,
+                connection,
+            )
             const [tokenMintPda] = getTokenMintPda(businessPoolPda)
-            const [vaultPda] = getVaultPda(businessPoolPda)
+            const [collateralVaultPda] = getCollateralVaultPda(businessPoolPda)
+            const [fundsVaultPda] = getFundsVaultPda(businessPoolPda)
+
             await program.methods
-                .initializeBusiness(
-                    new BN(0),
-                    new BN(totalTokens),
-                    new BN(tokenPriceLamports),
+                .initializeBusiness({
+                    id: new BN(businessId),
+                    totalTokens: new BN(totalTokens),
+                    tokenPrice: new BN(tokenPriceLamports),
                     revenueShareBps,
-                    new BN(collateralAmount),
-                    new BN(raiseLimit),
-                    new BN(targetRevenueLamports),
+                    collateralAmount: new BN(collateralAmount),
+                    raiseLimit: new BN(raiseLimit),
+                    targetRevenue: new BN(targetRevenueLamports),
                     oracleAuthority,
-                )
+                })
                 .accounts({
                     owner: publicKey,
                     businessPool: businessPoolPda,
                     tokenMint: tokenMintPda,
-                    vault: vaultPda,
+                    collateralVault: collateralVaultPda,
+                    fundsVault: fundsVaultPda,
                     tokenProgram: TOKEN_PROGRAM_ID,
                     systemProgram: SystemProgram.programId,
                     rent: SYSVAR_RENT_PUBKEY,
