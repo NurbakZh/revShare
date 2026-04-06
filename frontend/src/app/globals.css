@@ -4,67 +4,114 @@
 
 @layer base {
     :root {
-        --background: rgba(255, 255, 255, 1);
-        --foreground: rgba(2, 8, 20, 1);
-        --card: rgba(255, 255, 255, 1);
-        --card-foreground: rgba(2, 8, 20, 1);
-        --popover: rgba(255, 255, 255, 1);
-        --popover-foreground: rgba(2, 8, 20, 1);
-        --primary: rgba(33, 196, 93, 1);
-        --primary-foreground: rgba(255, 255, 255, 1);
-        --secondary: rgba(241, 245, 249, 1);
-        --secondary-foreground: rgba(15, 23, 42, 1);
-        --muted: rgba(245, 245, 245, 1);
-        --muted-foreground: rgba(100, 116, 139, 1);
-        --accent: rgba(241, 245, 249, 1);
-        --accent-foreground: rgba(15, 23, 42, 1);
-        --destructive: rgba(239, 68, 68, 1);
-        --destructive-foreground: rgba(255, 255, 255, 1);
-        --border: rgba(226, 232, 240, 1);
-        --input: rgba(226, 232, 240, 1);
-        --ring: rgba(33, 196, 93, 1);
+        --background: 250 36% 98%;
+        --foreground: 222 47% 11%;
+        --card: 0 0% 100%;
+        --card-foreground: 222 47% 11%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 222 47% 11%;
+        --primary: 142 76% 36%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 214 32% 95%;
+        --secondary-foreground: 222 47% 11%;
+        --muted: 214 32% 95%;
+        --muted-foreground: 215 16% 47%;
+        --accent: 214 32% 94%;
+        --accent-foreground: 222 47% 11%;
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 214 24% 88%;
+        --input: 214 24% 88%;
+        --ring: 142 76% 36%;
         --radius: 0.5rem;
-
-        /* Custom Tokens RGBA */
-        --brand-green: rgba(0, 184, 111, 1);
-        --brand-green-hover: rgba(38, 195, 130, 1);
-        --brand-purple: rgba(147, 51, 234, 1);
-        --brand-cyan: rgba(6, 182, 212, 1);
     }
 
     .dark {
-        --background: rgba(10, 10, 10, 1);
-        --foreground: rgba(248, 250, 252, 1);
-        --card: rgba(15, 15, 15, 1);
-        --card-foreground: rgba(248, 250, 252, 1);
-        --popover: rgba(10, 10, 10, 1);
-        --popover-foreground: rgba(248, 250, 252, 1);
-        --primary: rgba(33, 196, 93, 1);
-        --primary-foreground: rgba(10, 10, 10, 1);
-        --secondary: rgba(30, 41, 59, 1);
-        --secondary-foreground: rgba(248, 250, 252, 1);
-        --muted: rgba(30, 41, 59, 1);
-        --muted-foreground: rgba(148, 163, 184, 1);
-        --accent: rgba(30, 41, 59, 1);
-        --accent-foreground: rgba(248, 250, 252, 1);
-        --destructive: rgba(153, 27, 27, 1);
-        --destructive-foreground: rgba(248, 250, 252, 1);
-        --border: rgba(30, 41, 59, 1);
-        --input: rgba(30, 41, 59, 1);
-        --ring: rgba(33, 196, 93, 1);
+        --background: 240 10% 4%;
+        --foreground: 210 40% 98%;
+        --card: 240 8% 8%;
+        --card-foreground: 210 40% 98%;
+        --popover: 240 8% 6%;
+        --popover-foreground: 210 40% 98%;
+        --primary: 142 76% 45%;
+        --primary-foreground: 240 10% 4%;
+        --secondary: 240 6% 14%;
+        --secondary-foreground: 210 40% 98%;
+        --muted: 240 6% 14%;
+        --muted-foreground: 215 20% 65%;
+        --accent: 240 6% 16%;
+        --accent-foreground: 210 40% 98%;
+        --destructive: 0 62% 45%;
+        --destructive-foreground: 210 40% 98%;
+        --border: 240 6% 18%;
+        --input: 240 6% 18%;
+        --ring: 142 76% 45%;
     }
 }
 
 @layer base {
-    body {
-        overflow-y: scroll;
-        min-height: 100vh;
-        background-color: var(--background);
-        color: var(--foreground);
+    html {
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    html.light body,
+    html:not(.dark) body {
+        overflow-x: hidden;
+        color: hsl(var(--foreground));
+        background-color: hsl(var(--background));
+        background-image:
+            radial-gradient(
+                ellipse 130% 85% at 50% -8%,
+                rgb(139 92 246 / 0.1),
+                transparent 58%
+            ),
+            radial-gradient(
+                ellipse 100% 60% at 100% 5%,
+                rgb(14 165 233 / 0.07),
+                transparent 52%
+            ),
+            radial-gradient(
+                ellipse 90% 55% at 0% 95%,
+                rgb(147 51 234 / 0.06),
+                transparent 55%
+            ),
+            radial-gradient(
+                ellipse 80% 45% at 50% 100%,
+                rgb(59 130 246 / 0.04),
+                transparent 50%
+            );
+    }
+
+    html.dark body {
+        overflow-x: hidden;
+        color: hsl(var(--foreground));
+        background-color: hsl(var(--background));
+        background-image:
+            radial-gradient(
+                ellipse 125% 80% at 50% -5%,
+                rgb(139 92 246 / 0.2),
+                transparent 58%
+            ),
+            radial-gradient(
+                ellipse 95% 55% at 100% 10%,
+                rgb(14 165 233 / 0.11),
+                transparent 52%
+            ),
+            radial-gradient(
+                ellipse 85% 50% at 0% 95%,
+                rgb(88 28 135 / 0.14),
+                transparent 55%
+            ),
+            radial-gradient(
+                ellipse 75% 45% at 50% 100%,
+                rgb(59 7 100 / 0.12),
+                transparent 52%
+            );
     }
 
     body[data-scroll-locked] {
-        overflow: scroll !important;
+        overflow-y: auto !important;
         margin-right: 0 !important;
         padding-right: 0 !important;
         --removed-body-scroll-bar-size: 0px !important;

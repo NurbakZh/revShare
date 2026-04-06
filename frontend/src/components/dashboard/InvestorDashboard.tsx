@@ -47,47 +47,57 @@ export function InvestorDashboard() {
         }
         setLoading(true)
         const res = await fetchBusinesses()
-        const out: Position[] = []
+        let out: Position[] = []
         if (res.success && res.data) {
-            for (const b of res.data as BusinessProfile[]) {
-                const poolPk = new PublicKey(b.pubkey)
-                const [claimPk] = getHolderClaimPda(poolPk, publicKey)
-                const claim = await fetchHolderClaimAccount(connection, claimPk)
-                if (!claim || claim.tokenHeld.isZero()) continue
-                const pool = await fetchBusinessPoolAccount(connection, poolPk)
-                const view = profileToBusiness(b, pool)
-                const canClaim =
-                    !!pool &&
-                    claim.lastClaimedEpoch.toNumber() <
-                        pool.currentEpoch.toNumber()
-                let claimable: number | undefined
-                if (canClaim && pool) {
-                    const [epochPk] = getRevenueEpochPda(
-                        poolPk,
-                        claim.lastClaimedEpoch.toNumber(),
+            const list = res.data as BusinessProfile[]
+            const rows: (Position | null)[] = await Promise.all(
+                list.map(async (b) => {
+                    const poolPk = new PublicKey(b.pubkey)
+                    const [claimPk] = getHolderClaimPda(poolPk, publicKey)
+                    const claim = await fetchHolderClaimAccount(
+                        connection,
+                        claimPk,
                     )
-                    try {
-                        const epoch = await fetchRevenueEpochAccount(
-                            connection,
-                            epochPk,
+                    if (!claim || claim.tokenHeld.isZero()) return null
+                    const pool = await fetchBusinessPoolAccount(
+                        connection,
+                        poolPk,
+                    )
+                    const view = profileToBusiness(b, pool)
+                    const canClaim =
+                        !!pool &&
+                        claim.lastClaimedEpoch.toNumber() <
+                            pool.currentEpoch.toNumber()
+                    let claimable: number | undefined
+                    if (canClaim && pool) {
+                        const [epochPk] = getRevenueEpochPda(
+                            poolPk,
+                            claim.lastClaimedEpoch.toNumber(),
                         )
-                        if (epoch && !pool.totalTokens.isZero()) {
-                            const share = epoch.distributedAmount
-                                .mul(claim.tokenHeld)
-                                .div(pool.totalTokens)
-                            claimable = share.toNumber()
+                        try {
+                            const epoch = await fetchRevenueEpochAccount(
+                                connection,
+                                epochPk,
+                            )
+                            if (epoch && !pool.totalTokens.isZero()) {
+                                const share = epoch.distributedAmount
+                                    .mul(claim.tokenHeld)
+                                    .div(pool.totalTokens)
+                                claimable = share.toNumber()
+                            }
+                        } catch {
+                            claimable = undefined
                         }
-                    } catch {
-                        claimable = undefined
                     }
-                }
-                out.push({
-                    ...view,
-                    heldTokens: claim.tokenHeld.toString(),
-                    claimableLamports: claimable,
-                    canClaim,
-                })
-            }
+                    return {
+                        ...view,
+                        heldTokens: claim.tokenHeld.toString(),
+                        claimableLamports: claimable,
+                        canClaim,
+                    }
+                }),
+            )
+            out = rows.flatMap((x) => (x ? [x] : []))
         }
         setPositions(out)
         setLoading(false)

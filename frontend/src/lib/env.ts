@@ -19,7 +19,6 @@ export function getProgramId(): PublicKey {
     return new PublicKey(raw)
 }
 
-/** Solana Explorer link for a transaction signature (devnet vs mainnet from RPC URL). */
 export function getSolanaExplorerTxUrl(signature: string): string {
     const rpc = getSolanaRpcUrl().toLowerCase()
     const enc = encodeURIComponent(signature)

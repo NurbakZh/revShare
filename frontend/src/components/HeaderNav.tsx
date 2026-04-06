@@ -27,7 +27,7 @@ export function HeaderNav() {
                 >
                     {link.name}
                     {pathname === link.href && (
-                        <div className='absolute -bottom-1 left-0 right-0 h-0.5 rounded-full bg-primary duration-300 animate-in fade-in slide-in-from-left-1' />
+                        <div className='absolute -bottom-1 left-0 right-0 h-px rounded-full bg-gradient-to-r from-violet-500/80 to-cyan-500/80 duration-300 animate-in fade-in' />
                     )}
                 </Link>
             ))}

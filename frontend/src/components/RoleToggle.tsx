@@ -4,13 +4,10 @@ import { useAppStore } from '@/lib/store'
 import type { UserRole } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { Building2, User } from 'lucide-react'
-import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 export function RoleToggle() {
     const { role, setRole } = useAppStore()
-    const router = useRouter()
-    const pathname = usePathname()
     const [mounted, setMounted] = useState(false)
 
     useEffect(() => {
@@ -19,41 +16,56 @@ export function RoleToggle() {
 
     function select(next: UserRole) {
         setRole(next)
-        if (pathname !== '/dashboard') {
-            router.push('/dashboard')
-        }
     }
 
-    if (!mounted) return <div className='h-10 w-[180px]' />
+    if (!mounted) {
+        return (
+            <div
+                className='h-10 w-[188px] rounded-xl border border-border/40 bg-muted/30 dark:border-border/35'
+                aria-hidden
+            />
+        )
+    }
+
+    const base =
+        'inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-200'
+    const active =
+        'bg-violet-500/15 text-foreground shadow-sm ring-1 ring-violet-500/25 dark:bg-violet-500/18 dark:ring-violet-400/30'
 
     return (
-        <div className='flex rounded-xl border border-border bg-accent/50 p-1'>
-            <button
-                type='button'
-                onClick={() => select('investor')}
-                className={cn(
-                    'flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-300',
-                    role === 'investor'
-                        ? 'scale-105 bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-lg shadow-purple-500/30'
-                        : 'text-muted-foreground hover:text-foreground',
-                )}
-            >
-                <User size={18} />
-                Investor
-            </button>
-            <button
-                type='button'
-                onClick={() => select('business')}
-                className={cn(
-                    'flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-300',
-                    role === 'business'
-                        ? 'scale-105 bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-lg shadow-purple-500/30'
-                        : 'text-muted-foreground hover:text-foreground',
-                )}
-            >
-                <Building2 size={18} />
-                Business
-            </button>
+        <div
+            className='rounded-xl border border-border/50 bg-muted/35 p-1 shadow-sm ring-1 ring-black/[0.03] dark:border-border/45 dark:bg-muted/25 dark:ring-white/[0.04]'
+            role='group'
+            aria-label='View mode for dashboard'
+        >
+            <div className='flex items-stretch gap-0.5'>
+                <button
+                    type='button'
+                    onClick={() => select('investor')}
+                    className={cn(
+                        base,
+                        role === 'investor'
+                            ? active
+                            : 'text-muted-foreground hover:bg-background/80 hover:text-foreground dark:hover:bg-background/10',
+                    )}
+                >
+                    <User size={16} strokeWidth={2} aria-hidden />
+                    Investor
+                </button>
+                <button
+                    type='button'
+                    onClick={() => select('business')}
+                    className={cn(
+                        base,
+                        role === 'business'
+                            ? active
+                            : 'text-muted-foreground hover:bg-background/80 hover:text-foreground dark:hover:bg-background/10',
+                    )}
+                >
+                    <Building2 size={16} strokeWidth={2} aria-hidden />
+                    Business
+                </button>
+            </div>
         </div>
     )
 }

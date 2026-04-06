@@ -20,13 +20,12 @@ export default function RootLayout({
     return (
         <html lang='en' suppressHydrationWarning>
             <body
-                className={`${inter.className} min-h-screen bg-background text-foreground transition-colors duration-300`}
+                className={`${inter.className} flex min-h-[100dvh] flex-col overflow-x-hidden text-foreground antialiased transition-colors duration-300`}
             >
                 <SolanaProviders>
                     <ThemeWrapper>
-                        <div className='pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(120,0,255,0.05),transparent_50%)]' />
                         <Header />
-                        <main className='relative min-h-[calc(100vh-80px)]'>
+                        <main className='relative min-h-0 min-w-0 flex-1'>
                             {children}
                         </main>
                     </ThemeWrapper>

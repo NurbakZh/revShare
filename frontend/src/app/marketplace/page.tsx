@@ -5,6 +5,13 @@ import { PurchaseSuccessModal } from '@/components/PurchaseSuccessModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { fetchBusiness, fetchBusinesses, fetchMarketplaceListings } from '@/lib/api/oracle';
 import type { TokenListingDto } from '@/lib/api/types';
 import {
@@ -86,14 +93,16 @@ export default function MarketplacePage() {
             return;
         }
         const active = (res.data ?? []).filter((l) => l.status === 0);
-        const enriched: Row[] = [];
-        for (const l of active) {
-            const b = await fetchBusiness(l.businessPubkey);
-            enriched.push({
+        const names = await Promise.all(
+            active.map((l) => fetchBusiness(l.businessPubkey)),
+        );
+        const enriched: Row[] = active.map((l, i) => {
+            const b = names[i];
+            return {
                 ...l,
-                businessName: b.success && b.data ? b.data.name : undefined,
-            });
-        }
+                businessName: b?.success && b.data ? b.data.name : undefined,
+            };
+        });
         setRows(enriched);
         setLoading(false);
     }, []);
@@ -111,22 +120,25 @@ export default function MarketplacePage() {
         setSellErr(null);
         try {
             const res = await fetchBusinesses();
-            const out: SellHolding[] = [];
+            let out: SellHolding[] = [];
             if (res.success && res.data) {
-                for (const b of res.data) {
-                    const poolPk = new PublicKey(b.pubkey);
-                    const [claimPk] = getHolderClaimPda(poolPk, publicKey);
-                    const claim = await fetchHolderClaimAccount(
-                        connection,
-                        claimPk,
-                    );
-                    if (!claim || claim.tokenHeld.isZero()) continue;
-                    out.push({
-                        poolPubkey: b.pubkey,
-                        name: b.name,
-                        tokens: claim.tokenHeld.toNumber(),
-                    });
-                }
+                const rows = await Promise.all(
+                    res.data.map(async (b) => {
+                        const poolPk = new PublicKey(b.pubkey);
+                        const [claimPk] = getHolderClaimPda(poolPk, publicKey);
+                        const claim = await fetchHolderClaimAccount(
+                            connection,
+                            claimPk,
+                        );
+                        if (!claim || claim.tokenHeld.isZero()) return null;
+                        return {
+                            poolPubkey: b.pubkey,
+                            name: b.name,
+                            tokens: claim.tokenHeld.toNumber(),
+                        };
+                    }),
+                );
+                out = rows.filter((x): x is SellHolding => x != null);
             }
             setSellHoldings(out);
             setSellPoolPubkey((prev) => {
@@ -531,24 +543,28 @@ export default function MarketplacePage() {
                                         <Label htmlFor='sell-pool'>
                                             Business pool
                                         </Label>
-                                        <select
-                                            id='sell-pool'
-                                            className='mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                                        <Select
                                             value={sellPoolPubkey}
-                                            onChange={(e) =>
-                                                setSellPoolPubkey(e.target.value)
-                                            }
+                                            onValueChange={setSellPoolPubkey}
                                         >
-                                            {sellHoldings.map((h) => (
-                                                <option
-                                                    key={h.poolPubkey}
-                                                    value={h.poolPubkey}
-                                                >
-                                                    {h.name} (you hold{' '}
-                                                    {h.tokens})
-                                                </option>
-                                            ))}
-                                        </select>
+                                            <SelectTrigger
+                                                id='sell-pool'
+                                                className='mt-2'
+                                            >
+                                                <SelectValue placeholder='Choose business pool' />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {sellHoldings.map((h) => (
+                                                    <SelectItem
+                                                        key={h.poolPubkey}
+                                                        value={h.poolPubkey}
+                                                    >
+                                                        {h.name} (you hold{' '}
+                                                        {h.tokens})
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className='mb-4'>
                                         <Label htmlFor='sell-amt' required>

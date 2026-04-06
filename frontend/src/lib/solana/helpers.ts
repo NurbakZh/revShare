@@ -3,6 +3,7 @@ import type { Idl } from '@coral-xyz/anchor'
 import * as anchor from '@coral-xyz/anchor'
 import { BorshAccountsCoder } from '@coral-xyz/anchor'
 import BN from 'bn.js'
+import camelcase from 'camelcase'
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
 import type { Connection, PublicKey } from '@solana/web3.js'
 
@@ -77,12 +78,7 @@ export type DecodedRevenueEpoch = {
     bump: number
 }
 
-// Anchor 0.30+ IDLs use snake_case/PascalCase names; the BorshAccountsCoder
-// expects camelCase names matching what convertIdlToCamelCase (internal) produces.
-// We replicate that conversion here without importing internal Anchor modules.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const _cc = require('camelcase') as { default: (s: string, opts?: object) => string }
-const toCamel = (s: string) => _cc.default(s, { locale: false })
+const toCamel = (s: string) => camelcase(s, { locale: false })
 
 function camelCaseIdl(obj: unknown): unknown {
     const KEYS_TO_CONVERT = new Set(['name', 'path', 'account', 'relations', 'generic'])
@@ -100,7 +96,9 @@ function camelCaseIdl(obj: unknown): unknown {
 }
 
 function accountsCoder() {
-    return new BorshAccountsCoder(camelCaseIdl(getRevshareIdl()) as typeof rawIdl)
+    return new BorshAccountsCoder(
+        camelCaseIdl(getRevshareIdl()) as unknown as Idl,
+    )
 }
 
 export async function fetchBusinessPoolAccount(

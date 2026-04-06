@@ -41,19 +41,21 @@ export default function Home() {
         }
 
         const list = res.data ?? []
-        const merged: Business[] = []
-        for (const p of list) {
-            let pool = null
-            try {
-                pool = await fetchBusinessPoolAccount(
-                    connection,
-                    new PublicKey(p.pubkey),
-                )
-            } catch {
-                pool = null
-            }
-            merged.push(profileToBusiness(p, pool))
-        }
+        const pools = await Promise.all(
+            list.map(async (p) => {
+                try {
+                    return await fetchBusinessPoolAccount(
+                        connection,
+                        new PublicKey(p.pubkey),
+                    )
+                } catch {
+                    return null
+                }
+            }),
+        )
+        const merged: Business[] = list.map((p, i) =>
+            profileToBusiness(p, pools[i] ?? null),
+        )
         setBusinesses(merged)
         setLoading(false)
     }, [connection])

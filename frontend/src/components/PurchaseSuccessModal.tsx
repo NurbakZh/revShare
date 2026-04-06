@@ -13,7 +13,6 @@ type Props = {
     tokens: number
     totalSol: number
     signature: string
-    /** e.g. "Primary pool" vs "Marketplace listing" */
     variantLabel?: string
 }
 

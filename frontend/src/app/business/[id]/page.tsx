@@ -81,9 +81,12 @@ export default function BusinessDetailsPage() {
             setLoading(false)
             return
         }
-        const poolA = await fetchBusinessPoolAccount(connection, poolPk)
-        if (gen !== loadGenRef.current) return
-        const poolB = await fetchBusinessPoolAccount(connection, poolPk)
+        const [poolA, poolB, hist, ml] = await Promise.all([
+            fetchBusinessPoolAccount(connection, poolPk),
+            fetchBusinessPoolAccount(connection, poolPk),
+            fetchRevenueHistory(pubkeyStr),
+            fetchListingsForBusiness(pubkeyStr),
+        ])
         if (gen !== loadGenRef.current) return
         let pool = poolA
         if (poolA && poolB) {
@@ -91,12 +94,8 @@ export default function BusinessDetailsPage() {
         } else {
             pool = poolB ?? poolA
         }
-        const hist = await fetchRevenueHistory(pubkeyStr)
-        if (gen !== loadGenRef.current) return
         const rev = hist.success && hist.data ? hist.data : undefined
         setBusiness(profileToBusiness(res.data, pool, rev))
-        const ml = await fetchListingsForBusiness(pubkeyStr)
-        if (gen !== loadGenRef.current) return
         if (ml.success && ml.data) {
             setListings(ml.data.filter((l) => l.status === 0))
         } else {

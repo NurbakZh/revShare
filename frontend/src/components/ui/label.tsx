@@ -3,9 +3,7 @@ import * as React from 'react'
 
 export interface LabelProps
     extends React.LabelHTMLAttributes<HTMLLabelElement> {
-    /** Renders a red asterisk after the label text (required field). */
     required?: boolean
-    /** Optional muted hint after the asterisk, e.g. "(max 50%)". */
     hint?: string
 }
 
