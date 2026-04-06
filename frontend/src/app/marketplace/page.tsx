@@ -1,6 +1,12 @@
 'use client';
 
 import { GlassCard } from '@/components/GlassCard';
+import {
+    MarketplaceSearchSkeleton,
+    MarketplaceStatsSkeleton,
+    MarketplaceTableSkeleton,
+    SellHoldingsModalSkeleton,
+} from '@/components/skeletons/DataLoadingSkeletons';
 import { PurchaseSuccessModal } from '@/components/PurchaseSuccessModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -393,128 +399,154 @@ export default function MarketplacePage() {
 
             {err && <p className='mb-4 text-sm text-red-500'>{err}</p>}
 
-            <div className='mt-8 grid grid-cols-1 gap-6 md:grid-cols-2'>
-                <GlassCard className='p-6'>
-                    <div className='flex items-center gap-4'>
-                        <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-cyan-600'>
-                            <ShoppingCart className='text-white' size={24} />
-                        </div>
-                        <div>
-                            <div className='text-2xl font-bold text-foreground'>
-                                {loading ? '…' : filtered.length}
+            {loading ? (
+                <>
+                    <MarketplaceStatsSkeleton />
+                    <MarketplaceSearchSkeleton />
+                    <MarketplaceTableSkeleton rows={6} />
+                </>
+            ) : (
+                <>
+                    <div className='mt-8 grid grid-cols-1 gap-6 md:grid-cols-2'>
+                        <GlassCard className='p-6'>
+                            <div className='flex items-center gap-4'>
+                                <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-cyan-600'>
+                                    <ShoppingCart
+                                        className='text-white'
+                                        size={24}
+                                    />
+                                </div>
+                                <div>
+                                    <div className='text-2xl font-bold text-foreground'>
+                                        {filtered.length}
+                                    </div>
+                                    <p className='text-sm text-muted-foreground'>
+                                        Active listings
+                                    </p>
+                                </div>
                             </div>
-                            <p className='text-sm text-muted-foreground'>
-                                Active listings
-                            </p>
-                        </div>
-                    </div>
-                </GlassCard>
-                <GlassCard className='p-6'>
-                    <div className='flex items-center gap-4'>
-                        <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-600'>
-                            <TrendingUp className='text-white' size={24} />
-                        </div>
-                        <div>
-                            <div className='text-2xl font-bold text-foreground'>
-                                {loading
-                                    ? '…'
-                                    : rows.reduce((s, r) => s + r.amount, 0)}
+                        </GlassCard>
+                        <GlassCard className='p-6'>
+                            <div className='flex items-center gap-4'>
+                                <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-600'>
+                                    <TrendingUp
+                                        className='text-white'
+                                        size={24}
+                                    />
+                                </div>
+                                <div>
+                                    <div className='text-2xl font-bold text-foreground'>
+                                        {rows.reduce((s, r) => s + r.amount, 0)}
+                                    </div>
+                                    <p className='text-sm text-muted-foreground'>
+                                        Tokens listed (sum)
+                                    </p>
+                                </div>
                             </div>
-                            <p className='text-sm text-muted-foreground'>
-                                Tokens listed (sum)
-                            </p>
-                        </div>
+                        </GlassCard>
                     </div>
-                </GlassCard>
-            </div>
 
-            <GlassCard className='mt-8 p-6'>
-                <div className='relative'>
-                    <Search
-                        className='absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground'
-                        size={20}
-                    />
-                    <Input
-                        type='text'
-                        placeholder='Search…'
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className='pl-12'
-                    />
-                </div>
-            </GlassCard>
+                    <GlassCard className='mt-8 p-6'>
+                        <div className='relative'>
+                            <Search
+                                className='absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground'
+                                size={20}
+                            />
+                            <Input
+                                type='text'
+                                placeholder='Search…'
+                                value={searchQuery}
+                                onChange={(e) =>
+                                    setSearchQuery(e.target.value)
+                                }
+                                className='pl-12'
+                            />
+                        </div>
+                    </GlassCard>
 
-            <GlassCard className='mt-8 overflow-hidden p-8'>
-                <h2 className='mb-6 text-2xl font-bold text-foreground'>
-                    Listings
-                </h2>
-                <div className='overflow-x-auto'>
-                    <table className='w-full'>
-                        <thead>
-                            <tr className='border-b border-border'>
-                                <th className='px-4 py-4 text-left text-sm font-medium text-muted-foreground'>
-                                    Business
-                                </th>
-                                <th className='px-4 py-4 text-left text-sm font-medium text-muted-foreground'>
-                                    Seller
-                                </th>
-                                <th className='px-4 py-4 text-left text-sm font-medium text-muted-foreground'>
-                                    Price / token
-                                </th>
-                                <th className='px-4 py-4 text-left text-sm font-medium text-muted-foreground'>
-                                    Tokens
-                                </th>
-                                <th className='px-4 py-4 text-left text-sm font-medium text-muted-foreground'>
-                                    Action
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filtered.map((listing) => (
-                                <tr
-                                    key={listing.id}
-                                    className='border-b border-border/50 transition-colors hover:bg-accent/5'
-                                >
-                                    <td className='px-4 py-4 font-semibold text-foreground'>
-                                        {listing.businessName ||
-                                            listing.businessPubkey.slice(0, 8) +
-                                                '…'}
-                                    </td>
-                                    <td className='px-4 py-4 font-mono text-sm text-muted-foreground'>
-                                        {listing.sellerPubkey.slice(0, 8)}…
-                                    </td>
-                                    <td className='px-4 py-4'>
-                                        {lamportsToSol(
-                                            listing.pricePerToken,
-                                        ).toFixed(6)}{' '}
-                                        SOL
-                                    </td>
-                                    <td className='px-4 py-4 text-muted-foreground'>
-                                        {listing.amount}
-                                    </td>
-                                    <td className='px-4 py-4'>
-                                        <Button
-                                            variant='brand'
-                                            size='sm'
-                                            disabled={
-                                                !program || !publicKey || busy
-                                            }
-                                            onClick={() => setShowBuy(listing)}
+                    <GlassCard className='mt-8 overflow-hidden p-8'>
+                        <h2 className='mb-6 text-2xl font-bold text-foreground'>
+                            Listings
+                        </h2>
+                        <div className='overflow-x-auto'>
+                            <table className='w-full'>
+                                <thead>
+                                    <tr className='border-b border-border'>
+                                        <th className='px-4 py-4 text-left text-sm font-medium text-muted-foreground'>
+                                            Business
+                                        </th>
+                                        <th className='px-4 py-4 text-left text-sm font-medium text-muted-foreground'>
+                                            Seller
+                                        </th>
+                                        <th className='px-4 py-4 text-left text-sm font-medium text-muted-foreground'>
+                                            Price / token
+                                        </th>
+                                        <th className='px-4 py-4 text-left text-sm font-medium text-muted-foreground'>
+                                            Tokens
+                                        </th>
+                                        <th className='px-4 py-4 text-left text-sm font-medium text-muted-foreground'>
+                                            Action
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filtered.map((listing) => (
+                                        <tr
+                                            key={listing.id}
+                                            className='border-b border-border/50 transition-colors hover:bg-accent/5'
                                         >
-                                            Buy
-                                        </Button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                {!loading && filtered.length === 0 && (
-                    <div className='py-16 text-center text-muted-foreground'>
-                        No listings
-                    </div>
-                )}
-            </GlassCard>
+                                            <td className='px-4 py-4 font-semibold text-foreground'>
+                                                {listing.businessName ||
+                                                    listing.businessPubkey.slice(
+                                                        0,
+                                                        8,
+                                                    ) + '…'}
+                                            </td>
+                                            <td className='px-4 py-4 font-mono text-sm text-muted-foreground'>
+                                                {listing.sellerPubkey.slice(
+                                                    0,
+                                                    8,
+                                                )}
+                                                …
+                                            </td>
+                                            <td className='px-4 py-4'>
+                                                {lamportsToSol(
+                                                    listing.pricePerToken,
+                                                ).toFixed(6)}{' '}
+                                                SOL
+                                            </td>
+                                            <td className='px-4 py-4 text-muted-foreground'>
+                                                {listing.amount}
+                                            </td>
+                                            <td className='px-4 py-4'>
+                                                <Button
+                                                    variant='brand'
+                                                    size='sm'
+                                                    disabled={
+                                                        !program ||
+                                                        !publicKey ||
+                                                        busy
+                                                    }
+                                                    onClick={() =>
+                                                        setShowBuy(listing)
+                                                    }
+                                                >
+                                                    Buy
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        {filtered.length === 0 && (
+                            <div className='py-16 text-center text-muted-foreground'>
+                                No listings
+                            </div>
+                        )}
+                    </GlassCard>
+                </>
+            )}
 
             {showSell && (
                 <div
@@ -531,7 +563,7 @@ export default function MarketplacePage() {
                                 listing per business pool.
                             </p>
                             {sellHoldingsLoading ? (
-                                <p className='text-muted-foreground'>Loading…</p>
+                                <SellHoldingsModalSkeleton />
                             ) : sellHoldings.length === 0 ? (
                                 <p className='mb-4 text-sm text-muted-foreground'>
                                     No token holdings found. Buy tokens from the

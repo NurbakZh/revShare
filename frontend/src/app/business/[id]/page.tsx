@@ -1,6 +1,7 @@
 'use client'
 
 import { GlassCard } from '@/components/GlassCard'
+import { BusinessDetailPageSkeleton } from '@/components/skeletons/DataLoadingSkeletons'
 import { PurchaseSuccessModal } from '@/components/PurchaseSuccessModal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -115,11 +116,7 @@ export default function BusinessDetailsPage() {
     }, [business?.tokensLeft, business?.totalTokens])
 
     if (loading) {
-        return (
-            <div className='container mx-auto px-4 py-16 text-center'>
-                <p className='text-muted-foreground'>Loading…</p>
-            </div>
-        )
+        return <BusinessDetailPageSkeleton />
     }
 
     if (error || !business) {

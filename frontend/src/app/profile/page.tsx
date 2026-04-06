@@ -1,6 +1,7 @@
 'use client'
 
 import { GlassCard } from '@/components/GlassCard'
+import { ProfilePageSkeleton } from '@/components/skeletons/DataLoadingSkeletons'
 import { Button } from '@/components/ui/button'
 import { fetchBusinessesByOwner, fetchUser, registerUser } from '@/lib/api/oracle'
 import type { BusinessProfile } from '@/lib/api/types'
@@ -18,7 +19,7 @@ export default function ProfilePage() {
     const [ownedBusinesses, setOwnedBusinesses] = useState<BusinessProfile[]>(
         [],
     )
-    const [loading, setLoading] = useState(false)
+    const [loading, setLoading] = useState(true)
     const [mounted, setMounted] = useState(false)
 
     useEffect(() => {
@@ -52,7 +53,11 @@ export default function ProfilePage() {
     }, [publicKey, setHasBusiness])
 
     useEffect(() => {
-        if (connected && publicKey) syncUser()
+        if (!connected || !publicKey) {
+            setLoading(false)
+            return
+        }
+        void syncUser()
     }, [connected, publicKey, syncUser])
 
     if (!connected || !publicKey) {
@@ -82,6 +87,10 @@ export default function ProfilePage() {
         )
     }
 
+    if (loading) {
+        return <ProfilePageSkeleton />
+    }
+
     return (
         <div className='container mx-auto px-4 py-8 '>
             <div className='mb-8 flex items-center justify-between'>
@@ -100,7 +109,7 @@ export default function ProfilePage() {
                             <User className='text-white' size={40} />
                         </div>
                         <h2 className='text-xl font-bold text-foreground'>
-                            {loading ? '…' : name || '—'}
+                            {name || '—'}
                         </h2>
                         <p className='mt-1 font-mono text-xs text-muted-foreground break-all'>
                             {publicKey.toBase58()}

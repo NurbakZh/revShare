@@ -1,6 +1,7 @@
 'use client'
 
 import { GlassCard } from '@/components/GlassCard'
+import { InvestorPositionsSkeleton } from '@/components/skeletons/DataLoadingSkeletons'
 import { Button } from '@/components/ui/button'
 import { profileToBusiness } from '@/lib/businessView'
 import type { Business } from '@/lib/data'
@@ -183,7 +184,7 @@ export function InvestorDashboard() {
                     </Button>
                 </div>
                 {loading ? (
-                    <p className='text-muted-foreground'>Loading…</p>
+                    <InvestorPositionsSkeleton />
                 ) : positions.length === 0 ? (
                     <p className='text-muted-foreground'>
                         No token holdings found across known businesses.

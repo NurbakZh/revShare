@@ -10,6 +10,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import {
+    BusinessCardGridSkeleton,
+    HomeFiltersSkeleton,
+    HomeStatsSkeleton,
+} from '@/components/skeletons/DataLoadingSkeletons'
 import { fetchBusinesses } from '@/lib/api/oracle'
 import { profileToBusiness } from '@/lib/businessView'
 import type { Business } from '@/lib/data'
@@ -116,144 +121,172 @@ export default function Home() {
                 </p>
             )}
 
-            <div className='mt-8 grid grid-cols-1 gap-6 md:grid-cols-3'>
-                <GlassCard className='p-6'>
-                    <div className='flex items-center gap-4'>
-                        <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-cyan-600'>
-                            <DollarSign className='text-white' size={24} />
-                        </div>
-                        <div>
-                            <div className='text-2xl font-bold text-foreground'>
-                                {loading ? '…' : count}
+            {loading ? (
+                <>
+                    <HomeStatsSkeleton />
+                    <HomeFiltersSkeleton />
+                    <BusinessCardGridSkeleton count={6} />
+                </>
+            ) : (
+                <>
+                    <div className='mt-8 grid grid-cols-1 gap-6 md:grid-cols-3'>
+                        <GlassCard className='p-6'>
+                            <div className='flex items-center gap-4'>
+                                <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-cyan-600'>
+                                    <DollarSign
+                                        className='text-white'
+                                        size={24}
+                                    />
+                                </div>
+                                <div>
+                                    <div className='text-2xl font-bold text-foreground'>
+                                        {count}
+                                    </div>
+                                    <p className='text-sm text-muted-foreground'>
+                                        Businesses
+                                    </p>
+                                </div>
                             </div>
-                            <p className='text-sm text-muted-foreground'>
-                                Businesses
+                        </GlassCard>
+
+                        <GlassCard className='p-6'>
+                            <div className='flex items-center gap-4'>
+                                <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-600'>
+                                    <TrendingUp
+                                        className='text-white'
+                                        size={24}
+                                    />
+                                </div>
+                                <div>
+                                    <div className='text-2xl font-bold text-foreground'>
+                                        {avgApy > 0
+                                            ? `${avgApy.toFixed(1)}%`
+                                            : '—'}
+                                    </div>
+                                    <p className='text-sm text-muted-foreground'>
+                                        Avg APY
+                                    </p>
+                                </div>
+                            </div>
+                        </GlassCard>
+
+                        <GlassCard className='p-6'>
+                            <div className='flex items-center gap-4'>
+                                <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-600 to-purple-600'>
+                                    <Shield className='text-white' size={24} />
+                                </div>
+                                <div>
+                                    <div className='text-2xl font-bold text-foreground'>
+                                        {withOnChainPool}
+                                    </div>
+                                    <p className='text-sm text-muted-foreground'>
+                                        With pool on RPC
+                                    </p>
+                                </div>
+                            </div>
+                        </GlassCard>
+                    </div>
+
+                    <GlassCard className='mt-8 p-6'>
+                        <div className='grid grid-cols-1 gap-4 md:grid-cols-12'>
+                            <div className='relative md:col-span-5'>
+                                <Search
+                                    className='absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground'
+                                    size={20}
+                                />
+                                <Input
+                                    placeholder='Search businesses...'
+                                    value={searchQuery}
+                                    onChange={(e) =>
+                                        setSearchQuery(e.target.value)
+                                    }
+                                    className='pl-12'
+                                />
+                            </div>
+
+                            <div className='md:col-span-3'>
+                                <Select
+                                    value={selectedCategory}
+                                    onValueChange={setSelectedCategory}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder='Category' />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {categories.map((cat) => (
+                                            <SelectItem key={cat} value={cat}>
+                                                {cat}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className='md:col-span-2'>
+                                <Select
+                                    value={selectedRisk}
+                                    onValueChange={setSelectedRisk}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder='Risk' />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {riskLevels.map((risk) => (
+                                            <SelectItem key={risk} value={risk}>
+                                                {risk} Risk
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className='md:col-span-2'>
+                                <Select
+                                    value={sortBy}
+                                    onValueChange={setSortBy}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder='Sort by' />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value='apy'>
+                                            Highest APY
+                                        </SelectItem>
+                                        <SelectItem value='funding'>
+                                            Funding %
+                                        </SelectItem>
+                                        <SelectItem value='price'>
+                                            Price: Low to High
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </GlassCard>
+
+                    <div className='mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
+                        {filteredBusinesses.map((business) => (
+                            <BusinessCard
+                                key={business.id}
+                                business={business}
+                            />
+                        ))}
+                    </div>
+
+                    {filteredBusinesses.length === 0 && (
+                        <div className='py-16 text-center'>
+                            <Filter
+                                size={48}
+                                className='mx-auto mb-4 text-muted-foreground opacity-20'
+                            />
+                            <p className='text-xl text-muted-foreground'>
+                                {businesses.length === 0
+                                    ? 'No businesses from API'
+                                    : 'Nothing matches filters'}
                             </p>
                         </div>
-                    </div>
-                </GlassCard>
-
-                <GlassCard className='p-6'>
-                    <div className='flex items-center gap-4'>
-                        <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-600'>
-                            <TrendingUp className='text-white' size={24} />
-                        </div>
-                        <div>
-                            <div className='text-2xl font-bold text-foreground'>
-                                {avgApy > 0 ? `${avgApy.toFixed(1)}%` : '—'}
-                            </div>
-                            <p className='text-sm text-muted-foreground'>
-                                Avg APY
-                            </p>
-                        </div>
-                    </div>
-                </GlassCard>
-
-                <GlassCard className='p-6'>
-                    <div className='flex items-center gap-4'>
-                        <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-600 to-purple-600'>
-                            <Shield className='text-white' size={24} />
-                        </div>
-                        <div>
-                            <div className='text-2xl font-bold text-foreground'>
-                                {loading ? '…' : withOnChainPool}
-                            </div>
-                            <p className='text-sm text-muted-foreground'>
-                                With pool on RPC
-                            </p>
-                        </div>
-                    </div>
-                </GlassCard>
-            </div>
-
-            <GlassCard className='mt-8 p-6'>
-                <div className='grid grid-cols-1 gap-4 md:grid-cols-12'>
-                    <div className='relative md:col-span-5'>
-                        <Search
-                            className='absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground'
-                            size={20}
-                        />
-                        <Input
-                            placeholder='Search businesses...'
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className='pl-12'
-                        />
-                    </div>
-
-                    <div className='md:col-span-3'>
-                        <Select
-                            value={selectedCategory}
-                            onValueChange={setSelectedCategory}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder='Category' />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {categories.map((cat) => (
-                                    <SelectItem key={cat} value={cat}>
-                                        {cat}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className='md:col-span-2'>
-                        <Select
-                            value={selectedRisk}
-                            onValueChange={setSelectedRisk}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder='Risk' />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {riskLevels.map((risk) => (
-                                    <SelectItem key={risk} value={risk}>
-                                        {risk} Risk
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className='md:col-span-2'>
-                        <Select value={sortBy} onValueChange={setSortBy}>
-                            <SelectTrigger>
-                                <SelectValue placeholder='Sort by' />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value='apy'>Highest APY</SelectItem>
-                                <SelectItem value='funding'>
-                                    Funding %
-                                </SelectItem>
-                                <SelectItem value='price'>
-                                    Price: Low to High
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-            </GlassCard>
-
-            <div className='mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
-                {filteredBusinesses.map((business) => (
-                    <BusinessCard key={business.id} business={business} />
-                ))}
-            </div>
-
-            {!loading && filteredBusinesses.length === 0 && (
-                <div className='py-16 text-center'>
-                    <Filter
-                        size={48}
-                        className='mx-auto mb-4 text-muted-foreground opacity-20'
-                    />
-                    <p className='text-xl text-muted-foreground'>
-                        {businesses.length === 0
-                            ? 'No businesses from API'
-                            : 'Nothing matches filters'}
-                    </p>
-                </div>
+                    )}
+                </>
             )}
         </div>
     )

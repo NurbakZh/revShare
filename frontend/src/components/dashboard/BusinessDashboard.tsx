@@ -1,6 +1,7 @@
 'use client'
 
 import { GlassCard } from '@/components/GlassCard'
+import { BusinessDashboardSkeleton } from '@/components/skeletons/DataLoadingSkeletons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -163,11 +164,7 @@ export function BusinessDashboard() {
     }
 
     if (loading) {
-        return (
-            <div className='container mx-auto px-4 py-16 text-center'>
-                Loading…
-            </div>
-        )
+        return <BusinessDashboardSkeleton />
     }
 
     if (!poolPk) {
