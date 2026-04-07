@@ -16,6 +16,23 @@ services:
       timeout: 5s
       retries: 5
 
+  solana-validator:
+    build:
+      context: .
+      dockerfile: Dockerfile.validator
+    container_name: revshare-validator
+    ports:
+      - "8899:8899"
+      - "8900:8900"
+    environment:
+      ORACLE_KEYPAIR_JSON: '[104,87,27,54,102,238,105,189,162,233,203,131,94,168,209,210,31,40,76,243,44,115,127,228,43,36,192,232,163,3,113,24,67,209,110,118,44,151,6,139,169,86,182,222,90,216,177,216,100,70,89,58,5,254,239,249,172,124,61,130,174,230,100,249]'
+    healthcheck:
+      test: ["CMD-SHELL", "solana cluster-version --url http://localhost:8899 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
   oracle:
     build:
       context: ./backend/src
@@ -27,12 +44,34 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:5000
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=revshare;Username=postgres;Password=postgres
-      Solana__RpcUrl: https://api.devnet.solana.com
+      Solana__RpcUrl: http://solana-validator:8899
       Solana__ProgramId: EBzgZ4TU3tBtzfqLLmLpZcvoKKyuvyuseCkQ3MizCv8J
-      Solana__MinMonthlyRevenue: 50000
-      Solana__MaxMonthlyRevenue: 200000
+      Solana__OraclePrivateKey: '[104,87,27,54,102,238,105,189,162,233,203,131,94,168,209,210,31,40,76,243,44,115,127,228,43,36,192,232,163,3,113,24,67,209,110,118,44,151,6,139,169,86,182,222,90,216,177,216,100,70,89,58,5,254,239,249,172,124,61,130,174,230,100,249]'
+      Solana__MinMonthlyRevenue: 214748364
+      Solana__MaxMonthlyRevenue: 2147483647
     depends_on:
       postgres:
+        condition: service_healthy
+      solana-validator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/api/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    restart: on-failure
+
+  seed:
+    build:
+      context: .
+      dockerfile: Dockerfile.seed
+    container_name: revshare-seed
+    environment:
+      SOLANA_RPC_URL: http://solana-validator:8899
+      ORACLE_API_URL: http://oracle:5000
+    depends_on:
+      oracle:
         condition: service_healthy
     restart: on-failure
 

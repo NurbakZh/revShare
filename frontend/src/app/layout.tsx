@@ -1,4 +1,5 @@
 import { Header } from '@/components/Header';
+import { OnboardingBanner } from '@/components/OnboardingBanner';
 import { ThemeWrapper } from '@/components/ThemeWrapper';
 import { SolanaProviders } from '@/lib/solana/SolanaProviders';
 import type { Metadata } from 'next';
@@ -25,6 +26,7 @@ export default function RootLayout({
                 <SolanaProviders>
                     <ThemeWrapper>
                         <Header />
+                        <OnboardingBanner />
                         <main className='relative min-h-0 min-w-0 flex-1'>
                             {children}
                         </main>

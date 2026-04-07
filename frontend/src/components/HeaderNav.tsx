@@ -1,5 +1,6 @@
 'use client'
 
+import { isLocalnet } from '@/lib/env'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -10,6 +11,7 @@ export function HeaderNav() {
     const links = [
         { name: 'Marketplace', href: '/marketplace' },
         { name: 'Dashboard', href: '/dashboard' },
+        ...(isLocalnet() ? [{ name: 'Demo', href: '/demo' }] : []),
     ]
 
     return (

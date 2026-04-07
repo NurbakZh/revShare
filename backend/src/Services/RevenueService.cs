@@ -26,9 +26,10 @@ public class RevenueService(
         var business = await _businessRepository.GetByPubkeyAsync(businessPubkey, ct)
             ?? throw new InvalidOperationException($"Business {businessPubkey} not found");
 
-        var revenue = (ulong)Random.Shared.NextInt64(
-            _options.MinMonthlyRevenue,
-            _options.MaxMonthlyRevenue);
+        // Simulate revenue as 70–130 % of the business's own target revenue
+        var min = (long)(business.TargetRevenue * 0.7);
+        var max = (long)(business.TargetRevenue * 1.3) + 1;
+        var revenue = (ulong)Random.Shared.NextInt64(min, max);
 
         var txSignature = await _solana.DistributeRevenueAsync(businessPubkey, revenue, ct);
         if (txSignature is null)

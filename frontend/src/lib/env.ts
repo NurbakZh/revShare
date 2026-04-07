@@ -19,6 +19,11 @@ export function getProgramId(): PublicKey {
     return new PublicKey(raw)
 }
 
+export function isLocalnet(): boolean {
+    const rpc = getSolanaRpcUrl().toLowerCase()
+    return rpc.includes('127.0.0.1') || rpc.includes('localhost')
+}
+
 export function getSolanaExplorerTxUrl(signature: string): string {
     const rpc = getSolanaRpcUrl().toLowerCase()
     const enc = encodeURIComponent(signature)

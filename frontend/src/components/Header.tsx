@@ -5,15 +5,33 @@ import { RoleToggle } from '@/components/RoleToggle'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { fetchBusinessesByOwner, fetchUser } from '@/lib/api/oracle'
 import { useAppStore } from '@/lib/store'
+import { isLocalnet, getSolanaRpcUrl } from '@/lib/env'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
-import { useWallet } from '@solana/wallet-adapter-react'
+import { useWallet, useConnection } from '@solana/wallet-adapter-react'
+import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 
 export function Header() {
     const { publicKey, connected } = useWallet()
+    const { connection } = useConnection()
     const { setHasBusiness } = useAppStore()
     const [mounted, setMounted] = useState(false)
+    const [airdropping, setAirdropping] = useState(false)
+    const showAirdrop = isLocalnet()
+
+    async function handleAirdrop() {
+        if (!publicKey || airdropping) return
+        setAirdropping(true)
+        try {
+            const sig = await connection.requestAirdrop(publicKey, 100 * LAMPORTS_PER_SOL)
+            await connection.confirmTransaction(sig)
+        } catch (e) {
+            console.error('Airdrop failed', e)
+        } finally {
+            setAirdropping(false)
+        }
+    }
 
     useEffect(() => {
         setMounted(true)
@@ -67,6 +85,16 @@ export function Header() {
                     <div className='flex flex-wrap items-center gap-x-5 gap-y-2'>
                         <HeaderNav />
                         {mounted && connected && <RoleToggle />}
+                        {mounted && connected && showAirdrop && (
+                            <button
+                                onClick={handleAirdrop}
+                                disabled={airdropping}
+                                className='rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-sm font-medium text-cyan-400 transition-colors hover:bg-cyan-500/20 disabled:opacity-50'
+                                title='Get 100 SOL (localnet only)'
+                            >
+                                {airdropping ? 'Dropping…' : '⚡ Get SOL'}
+                            </button>
+                        )}
                         <ThemeToggle />
                         {!mounted ? (
                             <div

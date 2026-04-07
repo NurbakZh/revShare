@@ -1,0 +1,17 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install ts-node and TypeScript
+RUN npm install -g ts-node typescript
+
+# Copy root package files and install dependencies
+COPY package.json yarn.lock ./
+RUN yarn install
+
+# Copy the IDL and seed script
+COPY frontend/src/lib/solana/idl/ ./frontend/src/lib/solana/idl/
+COPY scripts/ ./scripts/
+COPY tsconfig.json ./
+
+CMD ["ts-node", "--project", "tsconfig.json", "scripts/seed.ts"]
