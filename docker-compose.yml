@@ -30,8 +30,8 @@ services:
       test: ["CMD-SHELL", "solana cluster-version --url http://localhost:8899 || exit 1"]
       interval: 5s
       timeout: 5s
-      retries: 30
-      start_period: 15s
+      retries: 40
+      start_period: 30s
 
   oracle:
     build:

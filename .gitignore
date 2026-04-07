@@ -1,3 +1,6 @@
+## Claude Code
+.claude/
+
 ## Anchor
 .anchor
 .DS_Store
@@ -6,8 +9,6 @@ target
 node_modules
 test-ledger
 .yarn
-
-.claude
 
 ## .NET 8
 ## Ignore Visual Studio temporary files, build results, and

@@ -1,44 +1,16 @@
-# ── Stage 1: Build Anchor program ───────────────────────────────────────────
-FROM ubuntu:22.04 AS builder
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y \
-    curl git build-essential pkg-config libssl-dev libudev-dev \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl bzip2 libssl3 && rm -rf /var/lib/apt/lists/*
 
-# Rust 1.89
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
-    sh -s -- -y --default-toolchain 1.89.0 --profile minimal
-ENV PATH="/root/.cargo/bin:${PATH}"
-
-# Solana CLI
-RUN sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
-ENV PATH="/root/.local/share/solana/install/active_release/bin:${PATH}"
-
-# Anchor via AVM
-RUN cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
-RUN avm install 0.32.1 && avm use 0.32.1
+# Solana 1.18.26 — last release without io_uring (required for Docker Desktop on Windows/Mac)
+RUN curl -fLo /tmp/solana.tar.bz2 \
+    https://github.com/solana-labs/solana/releases/download/v1.18.26/solana-release-x86_64-unknown-linux-gnu.tar.bz2 \
+    && tar xjf /tmp/solana.tar.bz2 -C /usr/local --strip-components=1 \
+    && rm /tmp/solana.tar.bz2
 
 WORKDIR /app
-COPY Cargo.toml Cargo.lock ./
-COPY programs/ programs/
-COPY Anchor.toml ./
-
-# Dummy keypair just for anchor build (not used for deploy)
-RUN solana-keygen new --no-bip39-passphrase --silent && anchor build
-
-# ── Stage 2: Run validator ───────────────────────────────────────────────────
-FROM ubuntu:22.04 AS runner
-
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-
-# Solana CLI only
-RUN sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
-ENV PATH="/root/.local/share/solana/install/active_release/bin:${PATH}"
-
-WORKDIR /app
-COPY --from=builder /app/target/deploy/revshare.so ./revshare.so
+COPY docker/revshare.so ./revshare.so
 COPY docker/validator-entrypoint.sh ./
 RUN chmod +x validator-entrypoint.sh
 
