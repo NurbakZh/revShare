@@ -21,7 +21,8 @@ import {
 import { useRevshareProgram } from '@/lib/solana/useRevshareProgram'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
-import { ArrowRight, MapPin, Wallet } from 'lucide-react'
+import { getSolanaExplorerTxUrl } from '@/lib/env'
+import { ArrowRight, ExternalLink, MapPin, Wallet } from 'lucide-react'
 import Link from 'next/link'
 import React, { useCallback, useEffect, useState } from 'react'
 
@@ -39,6 +40,7 @@ export function InvestorDashboard() {
     const [loading, setLoading] = useState(true)
     const [busy, setBusy] = useState(false)
     const [msg, setMsg] = useState<string | null>(null)
+    const [lastClaimSig, setLastClaimSig] = useState<string | null>(null)
 
     const load = useCallback(async () => {
         if (!publicKey) {
@@ -136,7 +138,8 @@ export function InvestorDashboard() {
                     fundsVault: fundsVaultPda,
                 })
                 .rpc()
-            setMsg(`Claim ok: ${sig.slice(0, 16)}…`)
+            setLastClaimSig(sig)
+            setMsg('Claim successful!')
             await load()
         } catch (e) {
             setMsg(e instanceof Error ? e.message : 'Claim failed')
@@ -168,7 +171,20 @@ export function InvestorDashboard() {
             </div>
 
             {msg && (
-                <p className='mb-4 text-sm text-muted-foreground'>{msg}</p>
+                <div className='mb-4 flex items-center gap-3 rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-400'>
+                    <span>{msg}</span>
+                    {lastClaimSig && (
+                        <a
+                            href={getSolanaExplorerTxUrl(lastClaimSig)}
+                            target='_blank'
+                            rel='noreferrer'
+                            className='ml-auto flex items-center gap-1 text-xs underline opacity-80 hover:opacity-100'
+                        >
+                            <ExternalLink size={12} />
+                            Explorer
+                        </a>
+                    )}
+                </div>
             )}
 
             <GlassCard className='p-8'>

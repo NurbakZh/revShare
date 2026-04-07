@@ -3,7 +3,7 @@
 import { HeaderNav } from '@/components/HeaderNav'
 import { RoleToggle } from '@/components/RoleToggle'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { fetchBusinessesByOwner, fetchUser } from '@/lib/api/oracle'
+import { fetchBusinessesByOwner, fetchUser, registerUser } from '@/lib/api/oracle'
 import { useAppStore } from '@/lib/store'
 import { isLocalnet, getSolanaRpcUrl } from '@/lib/env'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
@@ -44,7 +44,14 @@ export function Header() {
         }
         let cancelled = false
         ;(async () => {
-            const r = await fetchUser(publicKey.toBase58())
+            let r = await fetchUser(publicKey.toBase58())
+            if (cancelled) return
+            if (!r.success) {
+                r = await registerUser({
+                    pubkey: publicKey.toBase58(),
+                    name: `User ${publicKey.toBase58().slice(0, 4)}`,
+                })
+            }
             if (cancelled) return
             if (r.success && r.data?.hasBusiness) {
                 setHasBusiness(true)

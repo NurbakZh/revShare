@@ -9,6 +9,7 @@ import {
     fetchBusiness,
     fetchListingsForBusiness,
     fetchRevenueHistory,
+    simulateRevenue,
 } from '@/lib/api/oracle'
 import type { TokenListingDto } from '@/lib/api/types'
 import { profileToBusiness } from '@/lib/businessView'
@@ -30,7 +31,8 @@ import { BN } from '@coral-xyz/anchor'
 import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js'
-import { ArrowLeft, Shield, TrendingUp } from 'lucide-react'
+import { getSolanaExplorerTxUrl, isLocalnet } from '@/lib/env'
+import { ArrowLeft, ExternalLink, Shield, TrendingUp, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
@@ -60,6 +62,8 @@ export default function BusinessDetailsPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [txBusy, setTxBusy] = useState(false)
+    const [simBusy, setSimBusy] = useState(false)
+    const [simMsg, setSimMsg] = useState<{ text: string; sig?: string } | null>(null)
     const [purchaseDone, setPurchaseDone] = useState<{
         signature: string
         tokens: number
@@ -153,6 +157,24 @@ export default function BusinessDetailsPage() {
               business.totalTokens /
               12
             : 0
+
+    async function handleSimulate() {
+        setSimBusy(true)
+        setSimMsg(null)
+        try {
+            const res = await simulateRevenue(pubkeyStr)
+            if (res.success && res.data) {
+                setSimMsg({ text: `Revenue distributed: epoch ${res.data.epoch}`, sig: res.data.txSignature ?? undefined })
+            } else {
+                setSimMsg({ text: res.error ?? 'Simulation failed' })
+            }
+            await load()
+        } catch {
+            setSimMsg({ text: 'Simulation failed' })
+        } finally {
+            setSimBusy(false)
+        }
+    }
 
     async function executeBuy() {
         if (!program || !publicKey || !poolData) return
@@ -498,20 +520,78 @@ export default function BusinessDetailsPage() {
 
             {activeTab === 'overview' && (
                 <GlassCard className='p-8'>
-                    <h2 className='mb-6 text-2xl font-bold text-foreground'>
-                        Overview
-                    </h2>
-                    <p className='text-muted-foreground'>
-                        {business.description}
-                    </p>
+                    <h2 className='mb-6 text-2xl font-bold text-foreground'>Overview</h2>
+                    <p className='mb-8 text-muted-foreground'>{business.description}</p>
+
+                    {/* Tranche progress */}
+                    {poolData && (
+                        <div>
+                            <h3 className='mb-4 font-semibold text-foreground'>Funds release schedule</h3>
+                            <div className='space-y-3'>
+                                {[
+                                    { pct: 50, label: '50% — at listing (initial)', condition: 'Immediately on pool creation' },
+                                    { pct: 70, label: '70% — after first revenue epoch', condition: 'First revenue distribution received' },
+                                    { pct: 100, label: '100% — after 4 epochs at target', condition: 'Avg monthly revenue ≥ target for 4 epochs' },
+                                ].map(({ pct, label, condition }) => {
+                                    const unlocked = business.fundsReleased >= pct
+                                    return (
+                                        <div key={pct} className={`rounded-xl border p-4 ${unlocked ? 'border-green-500/30 bg-green-500/5' : 'border-border bg-accent/5'}`}>
+                                            <div className='flex items-center justify-between'>
+                                                <span className={`font-medium ${unlocked ? 'text-green-400' : 'text-muted-foreground'}`}>{label}</span>
+                                                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${unlocked ? 'bg-green-500/20 text-green-400' : 'bg-muted/40 text-muted-foreground'}`}>
+                                                    {unlocked ? '✓ Unlocked' : 'Locked'}
+                                                </span>
+                                            </div>
+                                            <p className='mt-1 text-xs text-muted-foreground'>{condition}</p>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                            <div className='mt-4'>
+                                <div className='mb-1 flex justify-between text-xs text-muted-foreground'>
+                                    <span>Current release</span>
+                                    <span>{business.fundsReleased}%</span>
+                                </div>
+                                <div className='h-2 overflow-hidden rounded-full bg-accent/20'>
+                                    <div
+                                        className='h-full rounded-full bg-gradient-to-r from-green-500 to-cyan-500 transition-all duration-500'
+                                        style={{ width: `${business.fundsReleased}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </GlassCard>
             )}
 
             {activeTab === 'revenue' && (
                 <GlassCard className='p-8'>
-                    <h2 className='mb-6 text-2xl font-bold text-foreground'>
-                        Revenue history
-                    </h2>
+                    <div className='mb-6 flex flex-wrap items-center justify-between gap-4'>
+                        <h2 className='text-2xl font-bold text-foreground'>Revenue history</h2>
+                        {isLocalnet() && (
+                            <div className='flex items-center gap-3'>
+                                {simMsg && (
+                                    <span className={`flex items-center gap-2 text-sm ${simMsg.sig ? 'text-green-400' : 'text-red-400'}`}>
+                                        {simMsg.text}
+                                        {simMsg.sig && (
+                                            <a href={getSolanaExplorerTxUrl(simMsg.sig)} target='_blank' rel='noreferrer' className='hover:opacity-100 opacity-70'>
+                                                <ExternalLink size={14} />
+                                            </a>
+                                        )}
+                                    </span>
+                                )}
+                                <Button
+                                    size='sm'
+                                    disabled={simBusy}
+                                    onClick={handleSimulate}
+                                    className='gap-1.5 border border-cyan-500/40 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20'
+                                >
+                                    <Zap size={14} />
+                                    {simBusy ? 'Simulating…' : 'Simulate revenue'}
+                                </Button>
+                            </div>
+                        )}
+                    </div>
                     <div className='h-80 w-full'>
                         <ResponsiveContainer width='100%' height='100%'>
                             <LineChart data={chartData}>

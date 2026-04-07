@@ -44,6 +44,7 @@ export function profileToBusiness(
             owner: `${p.ownerPubkey.slice(0, 4)}…${p.ownerPubkey.slice(-4)}`,
             revenueSharePercent: 0,
             targetRevenue: Math.round(lamportsToSol(p.targetRevenue)),
+            fundsReleased: 0,
         }
     }
 
@@ -85,5 +86,6 @@ export function profileToBusiness(
         owner: `${p.ownerPubkey.slice(0, 4)}…${p.ownerPubkey.slice(-4)}`,
         revenueSharePercent,
         targetRevenue: Math.round(lamportsToSol(pool.targetRevenue.toNumber())),
+        fundsReleased: pool.fundsReleased.toNumber(),
     }
 }

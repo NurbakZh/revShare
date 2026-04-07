@@ -15,4 +15,5 @@ export interface Business {
     owner: string
     revenueSharePercent: number
     targetRevenue: number
+    fundsReleased: number
 }
