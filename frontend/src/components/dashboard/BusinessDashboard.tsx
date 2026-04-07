@@ -14,8 +14,10 @@ import { getFundsVaultPda } from '@/lib/solana/pda'
 import { useRevshareProgram } from '@/lib/solana/useRevshareProgram'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
-import { DollarSign, TrendingUp, Unlock, Users, Zap } from 'lucide-react'
+import type { BusinessProfile } from '@/lib/api/types'
+import { ChevronDown, DollarSign, Plus, TrendingUp, Unlock, Users, Zap } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useEffect, useState } from 'react'
 import {
     CartesianGrid,
@@ -31,13 +33,25 @@ export function BusinessDashboard() {
     const { connection } = useConnection()
     const { publicKey } = useWallet()
     const program = useRevshareProgram()
+    const router = useRouter()
+    const searchParams = useSearchParams()
+    const [businesses, setBusinesses] = useState<BusinessProfile[]>([])
     const [poolPk, setPoolPk] = useState<string | null>(null)
     const [name, setName] = useState('')
+    const [showPicker, setShowPicker] = useState(false)
     const [loading, setLoading] = useState(true)
     const [busy, setBusy] = useState(false)
     const [msg, setMsg] = useState<string | null>(null)
     const [showSim, setShowSim] = useState(false)
     const [vaultLamports, setVaultLamports] = useState<number | null>(null)
+
+    function selectBusiness(pubkey: string, bizName: string) {
+        setPoolPk(pubkey)
+        setName(bizName)
+        const params = new URLSearchParams(searchParams.toString())
+        params.set('pool', pubkey)
+        router.replace(`?${params.toString()}`, { scroll: false })
+    }
 
     const load = useCallback(async () => {
         if (!publicKey) {
@@ -47,17 +61,20 @@ export function BusinessDashboard() {
         }
         setLoading(true)
         const list = await fetchBusinessesByOwner(publicKey.toBase58())
+        setBusinesses(list)
         if (!list.length) {
             setPoolPk(null)
             setName('')
             setLoading(false)
             return
         }
-        const first = list[0]!
-        setPoolPk(first.pubkey)
-        setName(first.name)
+        const savedPk = searchParams.get('pool')
+        const preferred = savedPk ? list.find((b) => b.pubkey === savedPk) : null
+        const chosen = preferred ?? list[0]!
+        setPoolPk(chosen.pubkey)
+        setName(chosen.name)
         setLoading(false)
-    }, [publicKey])
+    }, [publicKey, searchParams])
 
     useEffect(() => {
         load()
@@ -105,6 +122,7 @@ export function BusinessDashboard() {
         if (!r.success) setMsg(r.error || 'Simulate failed')
         else setMsg(`Epoch tx: ${r.data?.txSignature?.slice(0, 20)}…`)
         setShowSim(false)
+        await load()
         await refreshPool()
         setBusy(false)
     }
@@ -228,15 +246,56 @@ export function BusinessDashboard() {
                     <h1 className='mb-2 text-4xl font-bold text-foreground'>
                         Business dashboard
                     </h1>
-                    <p className='text-muted-foreground'>
-                        {name} —{' '}
-                        <span className='font-mono text-xs'>{poolPk}</span>
-                    </p>
+                    {/* Business selector */}
+                    <div className='relative flex items-center gap-3'>
+                        {businesses.length > 1 ? (
+                            <div className='relative'>
+                                <button
+                                    onClick={() => setShowPicker((v) => !v)}
+                                    className='flex items-center gap-2 rounded-lg border border-border bg-accent/30 px-3 py-1.5 text-sm text-foreground hover:bg-accent/50'
+                                >
+                                    {name}
+                                    <ChevronDown size={14} />
+                                </button>
+                                {showPicker && (
+                                    <div className='absolute left-0 top-full z-50 mt-1 min-w-[200px] rounded-xl border border-border bg-background shadow-xl'>
+                                        {businesses.map((b) => (
+                                            <button
+                                                key={b.pubkey}
+                                                onClick={() => {
+                                                    selectBusiness(b.pubkey, b.name)
+                                                    setShowPicker(false)
+                                                }}
+                                                className='block w-full px-4 py-2.5 text-left text-sm hover:bg-accent/50 first:rounded-t-xl last:rounded-b-xl'
+                                            >
+                                                {b.name}
+                                                <span className='ml-2 font-mono text-xs text-muted-foreground'>
+                                                    {b.pubkey.slice(0, 6)}…
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <p className='text-muted-foreground'>
+                                {name} —{' '}
+                                <span className='font-mono text-xs'>{poolPk?.slice(0, 8)}…</span>
+                            </p>
+                        )}
+                        <Link
+                            href='/create-business'
+                            className='flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground'
+                        >
+                            <Plus size={14} />
+                            New business
+                        </Link>
+                    </div>
                 </div>
                 <Button
                     variant='brand'
                     size='lg'
-                    disabled={busy}
+                    disabled={busy || !poolPk}
                     onClick={() => setShowSim(true)}
                 >
                     <Zap size={20} className='mr-2' />
@@ -269,6 +328,11 @@ export function BusinessDashboard() {
                     <p className='mt-2 text-sm text-muted-foreground'>
                         Raised / {raiseCapSol.toFixed(4)} SOL cap
                     </p>
+                    {raisedSol === 0 && (
+                        <p className='mt-1 text-xs text-amber-400'>
+                            Investors haven't bought tokens yet
+                        </p>
+                    )}
                 </GlassCard>
                 <GlassCard className='p-6'>
                     <div className='mb-4 flex items-center justify-between'>

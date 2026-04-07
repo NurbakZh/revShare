@@ -796,6 +796,34 @@
           }
         },
         {
+          "name": "funds_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100,
+                  115,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "business_pool"
+              }
+            ]
+          }
+        },
+        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
@@ -1327,18 +1355,18 @@
     },
     {
       "code": 6007,
-      "name": "OwnerCannotList",
-      "msg": "Business owner cannot list tokens"
-    },
-    {
-      "code": 6008,
       "name": "ListingNotActive",
       "msg": "Listing is not active"
     },
     {
-      "code": 6009,
+      "code": 6008,
       "name": "InsufficientTokensToList",
       "msg": "Insufficient tokens to list"
+    },
+    {
+      "code": 6009,
+      "name": "InsufficientFunds",
+      "msg": "Insufficient funds in vault"
     }
   ],
   "types": [
@@ -1477,10 +1505,6 @@
           },
           {
             "name": "collateral_amount",
-            "type": "u64"
-          },
-          {
-            "name": "raise_limit",
             "type": "u64"
           },
           {

@@ -64,9 +64,6 @@ pub fn handler(ctx: Context<BuyTokens>, amount: u64) -> Result<()> {
         RevShareError::NoTokensAvailable
     );
 
-    let new_raised = (pool.tokens_sold + amount) * pool.token_price;
-    require!(new_raised <= pool.raise_limit, RevShareError::RaiseLimitExceeded);
-
     // Transfer SOL to funds vault
     let total_cost = amount.checked_mul(pool.token_price).unwrap();
     let cpi_ctx = CpiContext::new(
@@ -108,9 +105,12 @@ pub fn handler(ctx: Context<BuyTokens>, amount: u64) -> Result<()> {
     if claim.holder == Pubkey::default() {
         claim.holder = ctx.accounts.investor.key();
         claim.business = pool.key();
-        claim.last_claimed_epoch = pool.current_epoch;
         claim.total_claimed = 0;
         claim.bump = ctx.bumps.holder_claim;
+    }
+    // Advance past epochs the investor didn't participate in
+    if pool.current_epoch > claim.last_claimed_epoch {
+        claim.last_claimed_epoch = pool.current_epoch;
     }
     claim.token_held += amount;
 

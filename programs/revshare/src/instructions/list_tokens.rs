@@ -50,10 +50,6 @@ pub struct ListTokens<'info> {
 
 pub fn handler(ctx: Context<ListTokens>, amount: u64, price_per_token: u64) -> Result<()> {
     require!(
-        ctx.accounts.seller.key() != ctx.accounts.business_pool.owner,
-        RevShareError::OwnerCannotList
-    );
-    require!(
         ctx.accounts.seller_claim.token_held >= amount,
         RevShareError::InsufficientTokensToList
     );

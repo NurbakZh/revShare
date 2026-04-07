@@ -97,8 +97,12 @@ pub fn handler(ctx: Context<BuyListedTokens>) -> Result<()> {
     if claim.holder == Pubkey::default() {
         claim.holder = ctx.accounts.buyer.key();
         claim.business = pool.key();
-        claim.last_claimed_epoch = pool.current_epoch;
         claim.bump = ctx.bumps.buyer_claim;
+        claim.total_claimed = 0;
+    }
+    // Always advance past epochs the buyer didn't participate in
+    if pool.current_epoch > claim.last_claimed_epoch {
+        claim.last_claimed_epoch = pool.current_epoch;
     }
     claim.token_held += listing.amount;
 

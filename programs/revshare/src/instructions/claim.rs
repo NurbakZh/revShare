@@ -54,6 +54,8 @@ pub fn handler(ctx: Context<Claim>) -> Result<()> {
         .checked_mul(claim.token_held).unwrap()
         .checked_div(pool.total_tokens).unwrap();
 
+    let vault_lamports = **ctx.accounts.funds_vault.try_borrow_lamports()?;
+    require!(vault_lamports >= investor_share, RevShareError::InsufficientFunds);
     **ctx.accounts.funds_vault.try_borrow_mut_lamports()? -= investor_share;
     **ctx.accounts.investor.try_borrow_mut_lamports()? += investor_share;
 

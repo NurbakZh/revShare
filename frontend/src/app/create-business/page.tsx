@@ -124,7 +124,6 @@ export default function CreateBusinessPage() {
                     tokenPrice: new BN(tokenPriceLamports),
                     revenueShareBps,
                     collateralAmount: new BN(collateralAmount),
-                    raiseLimit: new BN(raiseLimit),
                     targetRevenue: new BN(targetRevenueLamports),
                     oracleAuthority,
                 })

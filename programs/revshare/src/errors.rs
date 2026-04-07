@@ -16,10 +16,10 @@ pub enum RevShareError {
     RaiseLimitExceeded,
     #[msg("Invalid revenue share basis points")]
     InvalidRevenueShareBps,
-    #[msg("Business owner cannot list tokens")]
-    OwnerCannotList,
-    #[msg("Listing is not active")]
+#[msg("Listing is not active")]
     ListingNotActive,
     #[msg("Insufficient tokens to list")]
     InsufficientTokensToList,
+    #[msg("Insufficient funds in vault")]
+    InsufficientFunds,
 }

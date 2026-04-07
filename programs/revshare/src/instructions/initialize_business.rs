@@ -11,7 +11,6 @@ pub struct InitBusinessParams {
     pub token_price: u64,
     pub revenue_share_bps: u16,
     pub collateral_amount: u64,
-    pub raise_limit: u64,
     pub target_revenue: u64,
     pub oracle_authority: Pubkey,
 }
@@ -74,7 +73,11 @@ pub fn handler(ctx: Context<InitializeBusiness>, params: InitBusinessParams) -> 
         RevShareError::InvalidRevenueShareBps
     );
 
-    let min_collateral = params.raise_limit
+    // raise_limit is auto-computed as total_tokens * token_price
+    let raise_limit = params.total_tokens
+        .checked_mul(params.token_price).unwrap();
+
+    let min_collateral = raise_limit
         .checked_mul(30).unwrap()
         .checked_div(100).unwrap();
     require!(
@@ -96,7 +99,7 @@ pub fn handler(ctx: Context<InitializeBusiness>, params: InitBusinessParams) -> 
     pool.total_distributed = 0;
     pool.total_revenue = 0;
     pool.is_defaulted = false;
-    pool.raise_limit = params.raise_limit;
+    pool.raise_limit = raise_limit;
     pool.funds_released = 0;
     pool.total_raised = 0;
     pool.target_revenue = params.target_revenue;
@@ -112,6 +115,6 @@ pub fn handler(ctx: Context<InitializeBusiness>, params: InitBusinessParams) -> 
     );
     system_program::transfer(cpi_ctx, params.collateral_amount)?;
 
-    msg!("Business {} initialized. Raise limit: {}", params.id, params.raise_limit);
+    msg!("Business {} initialized. Raise limit: {}", params.id, raise_limit);
     Ok(())
 }

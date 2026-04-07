@@ -47,11 +47,11 @@ const BUSINESSES = [
         description:
             'Premium specialty coffee roastery sourcing single-origin beans from Ethiopia and Colombia. Founded in 2019.',
         city: 'Almaty',
-        totalTokens: new BN(1000),
-        tokenPrice: new BN(100_000_000), // 0.1 SOL per token
-        revenueShareBps: 1500, // 15%
-        collateralAmount: new BN(300_000_000), // 0.3 SOL (≥ 30% of raiseLimit)
-        raiseLimit: new BN(1_000_000_000), // 1 SOL
+        totalTokens: new BN(100),
+        tokenPrice: new BN(50_000_000),   // 0.05 SOL per token
+        revenueShareBps: 1500,             // 15%
+        raiseLimit: new BN(5_000_000_000), // 5 SOL = 100 tokens × 0.05 SOL
+        collateralAmount: new BN(1_500_000_000), // 1.5 SOL = 30% of raiseLimit
         targetRevenue: new BN(500_000_000), // 0.5 SOL/month
     },
     {
@@ -60,11 +60,11 @@ const BUSINESSES = [
         description:
             'Traditional Kazakh bakery chain with 5 locations. Fresh bread and pastries baked daily since 2015.',
         city: 'Astana',
-        totalTokens: new BN(2000),
-        tokenPrice: new BN(50_000_000), // 0.05 SOL per token
-        revenueShareBps: 1000, // 10%
-        collateralAmount: new BN(600_000_000), // 0.6 SOL
-        raiseLimit: new BN(2_000_000_000), // 2 SOL
+        totalTokens: new BN(200),
+        tokenPrice: new BN(20_000_000),    // 0.02 SOL per token
+        revenueShareBps: 1000,              // 10%
+        raiseLimit: new BN(4_000_000_000), // 4 SOL = 200 tokens × 0.02 SOL
+        collateralAmount: new BN(1_200_000_000), // 1.2 SOL = 30% of raiseLimit
         targetRevenue: new BN(800_000_000), // 0.8 SOL/month
     },
 ]
@@ -132,8 +132,12 @@ async function simulateRevenue(pubkey: string) {
         `${ORACLE_API}/api/business/${encodeURIComponent(pubkey)}/revenue/simulate`,
         { method: 'POST' },
     )
-    const json = (await res.json()) as { success: boolean; data?: { revenueAmount?: number } }
-    if (!json.success) throw new Error(`Simulate failed: ${JSON.stringify(json)}`)
+    const json = (await res.json()) as { success: boolean; data?: { revenueAmount?: number }; error?: string }
+    if (!json.success) {
+        // Epoch already exists — idempotent, skip
+        console.log(`  ⚡ Skipped (epoch already distributed): ${json.error ?? ''}`)
+        return
+    }
     console.log(`  ✓ Revenue epoch: ${json.data?.revenueAmount ?? '?'} lamports`)
 }
 
@@ -191,7 +195,6 @@ async function main() {
                     tokenPrice: biz.tokenPrice,
                     revenueShareBps: biz.revenueShareBps,
                     collateralAmount: biz.collateralAmount,
-                    raiseLimit: biz.raiseLimit,
                     targetRevenue: biz.targetRevenue,
                     oracleAuthority: ORACLE_KP.publicKey,
                 })

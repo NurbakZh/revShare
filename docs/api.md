@@ -24,7 +24,7 @@
   "status": "healthy",
   "solana": true,
   "oraclePublicKey": "AbCd...XyZ",
-  "timestamp": "2026-04-03T10:00:00Z"
+  "timestamp": "2026-04-07T10:00:00Z"
 }
 ```
 
@@ -52,11 +52,11 @@
       "city": "Astana",
       "logoUrl": null,
       "rank": 0,
-      "raiseLimit": 500000000,
-      "targetRevenue": 100000000,
-      "consecutivePayments": 3,
+      "raiseLimit": 5000000000,
+      "targetRevenue": 500000000,
+      "consecutivePayments": 2,
       "hasDefaulted": false,
-      "createdAt": "2026-04-01T10:00:00Z"
+      "createdAt": "2026-04-07T10:00:00Z"
     }
   ],
   "error": null
@@ -75,6 +75,13 @@
 
 ---
 
+### `GET /api/business/owner/{ownerPubkey}`
+Все бизнесы конкретного владельца.
+
+**Response:** `Result<BusinessProfile[]>`
+
+---
+
 ### `POST /api/business/register`
 Регистрация бизнеса в off-chain БД. Вызывается после `initialize_business` на контракте.
 
@@ -86,11 +93,13 @@
   "name": "Coffee House",
   "description": "Best coffee in Astana",
   "city": "Astana",
-  "raiseLimit": 500000000,
-  "targetRevenue": 100000000,
+  "raiseLimit": 5000000000,
+  "targetRevenue": 500000000,
   "logoUrl": null
 }
 ```
+
+> Примечание: `raiseLimit` в смарт-контракте вычисляется автоматически (`total_tokens × token_price`). В запросе передаётся для off-chain отображения.
 
 **Response:** `Result<BusinessProfile>`
 
@@ -115,7 +124,7 @@
       "amount": 150000000,
       "source": "mock_pos",
       "txSignature": "5fi2mg...",
-      "createdAt": "2026-04-01T10:00:00Z"
+      "createdAt": "2026-04-07T10:00:00Z"
     }
   ]
 }
@@ -126,6 +135,8 @@
 ### `POST /api/business/{pubkey}/revenue/simulate`
 **Только для демо.** Симулирует выручку за месяц и вызывает `distribute_revenue` на контракте.
 
+Выручка генерируется случайно в диапазоне **100–150% от `targetRevenue`** бизнеса — всегда выше целевого показателя.
+
 **Response:** `Result<RevenueRecord>`
 
 ```json
@@ -134,7 +145,7 @@
   "data": {
     "businessPubkey": "BaaJp3...",
     "epoch": 1,
-    "amount": 127543000,
+    "amount": 627543000,
     "txSignature": "AbCd..."
   }
 }
@@ -159,18 +170,18 @@
     "avatarUrl": null,
     "bio": "Web3 investor",
     "hasBusiness": false,
-    "createdAt": "2026-04-01T10:00:00Z"
+    "createdAt": "2026-04-07T10:00:00Z"
   }
 }
 ```
 
 **Errors:**
-- `404` — пользователь не найден (нужно зарегистрировать)
+- `404` — пользователь не найден
 
 ---
 
 ### `POST /api/user/register`
-Регистрация нового пользователя. Вызывается при первом подключении кошелька.
+Регистрация нового пользователя. Автоматически вызывается при первом подключении кошелька на фронте.
 
 **Request:**
 ```json
@@ -208,7 +219,7 @@
       "amount": 10,
       "pricePerToken": 2000000,
       "status": 0,
-      "createdAt": "2026-04-03T10:00:00Z"
+      "createdAt": "2026-04-07T10:00:00Z"
     }
   ]
 }

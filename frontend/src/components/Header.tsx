@@ -83,14 +83,16 @@ export function Header() {
 
             <nav className='relative border-b border-border/30 bg-background/70 py-3 backdrop-blur-xl supports-[backdrop-filter]:bg-background/55 dark:border-border/25'>
                 <div className='container mx-auto flex flex-wrap items-center justify-between gap-3 px-4'>
-                    <Link
-                        href='/'
-                        className='bg-gradient-to-r from-violet-600 via-blue-600 to-cyan-500 bg-clip-text text-2xl font-bold text-transparent'
-                    >
-                        revShare
-                    </Link>
-                    <div className='flex flex-wrap items-center gap-x-5 gap-y-2'>
+                    <div className='flex items-center gap-6'>
+                        <Link
+                            href='/'
+                            className='bg-gradient-to-r from-violet-600 via-blue-600 to-cyan-500 bg-clip-text text-2xl font-bold text-transparent'
+                        >
+                            revShare
+                        </Link>
                         <HeaderNav />
+                    </div>
+                    <div className='flex flex-wrap items-center gap-x-5 gap-y-2'>
                         {mounted && connected && <RoleToggle />}
                         {mounted && connected && showAirdrop && (
                             <button

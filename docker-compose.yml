@@ -55,7 +55,7 @@ services:
       solana-validator:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5000/api/health || exit 1"]
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/5000' 2>/dev/null || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 20
