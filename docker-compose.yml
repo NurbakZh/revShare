@@ -19,7 +19,7 @@ services:
   solana-validator:
     build:
       context: .
-      dockerfile: Dockerfile.validator
+      dockerfile: docker/Dockerfile.validator
     container_name: revshare-validator
     ports:
       - "8899:8899"
@@ -65,7 +65,7 @@ services:
   seed:
     build:
       context: .
-      dockerfile: Dockerfile.seed
+      dockerfile: docker/Dockerfile.seed
     container_name: revshare-seed
     environment:
       SOLANA_RPC_URL: http://solana-validator:8899

@@ -39,7 +39,7 @@ ENV PATH="/root/.local/share/solana/install/active_release/bin:${PATH}"
 
 WORKDIR /app
 COPY --from=builder /app/target/deploy/revshare.so ./revshare.so
-COPY validator-entrypoint.sh ./
+COPY docker/validator-entrypoint.sh ./
 RUN chmod +x validator-entrypoint.sh
 
 EXPOSE 8899 8900
