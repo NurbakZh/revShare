@@ -50,7 +50,14 @@ public class BusinessController(
         if (!businessResult.Success)
             return NotFound(businessResult);
 
-        var record = await _revenueService.SimulateAndDistributeAsync(pubkey, ct);
-        return Ok(Result<object>.Ok(record));
+        try
+        {
+            var record = await _revenueService.SimulateAndDistributeAsync(pubkey, ct);
+            return Ok(Result<object>.Ok(record));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(Result<object>.Fail(ex.Message));
+        }
     }
 }

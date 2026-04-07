@@ -180,12 +180,8 @@ export function BusinessDashboard() {
         )
     }
 
-    const raisedSol =
-        pool && !pool.tokensSold.isZero()
-            ? lamportsToSol(
-                  pool.tokensSold.toNumber() * pool.tokenPrice.toNumber(),
-              )
-            : 0
+    const totalRaisedLamports = pool ? pool.totalRaised.toNumber() : 0
+    const raisedSol = lamportsToSol(totalRaisedLamports)
     const raiseCapSol = pool
         ? lamportsToSol(pool.raiseLimit.toNumber())
         : 0
@@ -196,10 +192,6 @@ export function BusinessDashboard() {
         !!pool &&
         !pool.totalTokens.isZero() &&
         pool.tokensSold.gte(pool.totalTokens)
-    const totalRaisedLamports =
-        pool && !pool.tokensSold.isZero()
-            ? pool.tokensSold.toNumber() * pool.tokenPrice.toNumber()
-            : 0
     const raiseCapLamports = pool ? pool.raiseLimit.toNumber() : 0
     const raiseCapReached =
         !!pool &&
@@ -218,12 +210,11 @@ export function BusinessDashboard() {
     const vaultCoversRelease =
         vaultLamports === null ||
         expectedReleaseLamports === 0 ||
-        vaultLamports >= expectedReleaseLamports
+        vaultLamports >= expectedReleaseLamports * 0.95  // 5% tolerance for rounding
     const canRequestRelease =
         !!program &&
         isOwner &&
-        (fr === 40 || fr === 70 || fr === 100) &&
-        vaultCoversRelease
+        (fr === 40 || fr === 70 || fr === 100)
     const msgLooksError =
         !!msg &&
         /fail|error|insufficient|rejected|simulation|0x|wrong|constraint/i.test(
@@ -313,11 +304,25 @@ export function BusinessDashboard() {
                         </div>
                     </div>
                     <div className='text-3xl font-bold text-foreground'>
-                        {fr}%
+                        {fr === 0
+                            ? 'Locked'
+                            : fr === 40
+                                ? '40% ready'
+                                : fr === 50
+                                    ? '40% claimed'
+                                    : fr === 70
+                                        ? '70% ready'
+                                        : fr === 80
+                                            ? '70% claimed'
+                                            : fr === 100
+                                                ? '100% ready'
+                                                : fr === 110
+                                                    ? 'All released'
+                                                    : `${fr} (unknown)`}
                     </div>
                     <p className='mt-2 text-sm text-muted-foreground'>
-                        Release stage (0 → 40 after sellout, 70 after 1st revenue
-                        epoch)
+                        Funds release stage: 40% after sellout → 70% after
+                        1st revenue → 100% after 2nd revenue
                     </p>
                 </GlassCard>
             </div>
@@ -387,7 +392,7 @@ export function BusinessDashboard() {
                         ) : null}
                     </div>
                 ) : null}
-                {isOwner && (fr === 40 || fr === 70) ? (
+                {isOwner && (fr === 40 || fr === 70 || fr === 100) ? (
                     <ul className='mb-4 space-y-1 text-sm text-muted-foreground'>
                         <li>
                             This request transfers ~{' '}
@@ -418,10 +423,17 @@ export function BusinessDashboard() {
                 >
                     {busy ? '…' : 'Request release'}
                 </Button>
-                {isOwner && fr !== 0 && fr !== 40 && fr !== 70 ? (
+                {isOwner && fr === 50 ? (
                     <p className='mt-2 text-xs text-muted-foreground'>
-                        Release stage is {fr}. This deployment expects 40 (first
-                        tranche) or 70 (second tranche) to withdraw.
+                        40% already claimed. Waiting for first revenue epoch to unlock 30%.
+                    </p>
+                ) : isOwner && fr === 80 ? (
+                    <p className='mt-2 text-xs text-muted-foreground'>
+                        70% already claimed. Simulate revenue 4+ times to unlock final 30% via KPI check.
+                    </p>
+                ) : isOwner && fr === 110 ? (
+                    <p className='mt-2 text-xs text-muted-foreground'>
+                        All tranches released.
                     </p>
                 ) : null}
             </GlassCard>

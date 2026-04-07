@@ -31,6 +31,9 @@ public class RevenueService(
             _options.MaxMonthlyRevenue);
 
         var txSignature = await _solana.DistributeRevenueAsync(businessPubkey, revenue, ct);
+        if (txSignature is null)
+            throw new InvalidOperationException(
+                $"On-chain distribute_revenue failed for {businessPubkey} — check oracle balance and logs.");
 
         var latest = await _revenueRepository.GetLatestByBusinessAsync(businessPubkey, ct);
         var nextEpoch = latest is null ? 0 : latest.Epoch + 1;

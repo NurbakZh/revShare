@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program;
 use crate::state::{BusinessPool, RevenueEpoch};
 use crate::errors::RevShareError;
 
@@ -27,6 +28,14 @@ pub struct DistributeRevenue<'info> {
     )]
     pub revenue_epoch: Account<'info, RevenueEpoch>,
 
+    /// CHECK: funds vault receives the investor revenue share from oracle
+    #[account(
+        mut,
+        seeds = [b"funds_vault", business_pool.key().as_ref()],
+        bump,
+    )]
+    pub funds_vault: UncheckedAccount<'info>,
+
     pub system_program: Program<'info, System>,
 }
 
@@ -51,18 +60,45 @@ pub fn handler(ctx: Context<DistributeRevenue>, revenue_amount: u64) -> Result<(
     epoch.timestamp = Clock::get()?.unix_timestamp;
     epoch.bump = ctx.bumps.revenue_epoch;
 
+    // Oracle deposits the investor share into the funds vault so investors can claim
+    if distributed > 0 {
+        let cpi_ctx = CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            system_program::Transfer {
+                from: ctx.accounts.oracle.to_account_info(),
+                to: ctx.accounts.funds_vault.to_account_info(),
+            },
+        );
+        system_program::transfer(cpi_ctx, distributed)?;
+    }
+
     pool.current_epoch += 1;
     pool.total_distributed += distributed;
+    pool.total_revenue += revenue_amount;
 
-    // Unlock second tranche after first distribution (50 = 40% already released)
+    // Unlock second tranche after first revenue distribution
     if pool.current_epoch == 1 && pool.funds_released == 50 {
         pool.funds_released = 70;
-        msg!("Second tranche unlocked: 70%");
+        msg!("Second tranche unlocked");
     }
-    // Unlock third tranche after second distribution (80 = 70% already released)
-    if pool.current_epoch == 2 && pool.funds_released == 80 {
-        pool.funds_released = 100;
-        msg!("Third tranche unlocked: 100%");
+
+    // Unlock third tranche after 4 distributions if avg monthly revenue >= target
+    if pool.current_epoch >= 4 && pool.funds_released == 80 {
+        let avg_revenue = pool.total_revenue / pool.current_epoch;
+        if avg_revenue >= pool.target_revenue {
+            pool.funds_released = 100;
+            msg!(
+                "Third tranche unlocked: avg_revenue={} >= target={}",
+                avg_revenue,
+                pool.target_revenue
+            );
+        } else {
+            msg!(
+                "KPI not met: avg_revenue={} < target={}",
+                avg_revenue,
+                pool.target_revenue
+            );
+        }
     }
 
     msg!("Epoch {} distributed: {} lamports", epoch.epoch_number, distributed);

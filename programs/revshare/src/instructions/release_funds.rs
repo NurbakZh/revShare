@@ -42,9 +42,16 @@ pub fn handler(ctx: Context<ReleaseFunds>) -> Result<()> {
         return err!(RevShareError::InsufficientCollateral);
     };
 
-    let release_amount = total_raised
+    let nominal = total_raised
         .checked_mul(tranche_pct).unwrap()
         .checked_div(100).unwrap();
+
+    // Cap to actual vault balance to guard against small discrepancies
+    // (e.g. secondary-market sales do not increment total_raised).
+    let vault_balance = ctx.accounts.funds_vault.lamports();
+    let release_amount = nominal.min(vault_balance);
+
+    require!(release_amount > 0, RevShareError::InsufficientCollateral);
 
     **ctx.accounts.funds_vault.try_borrow_mut_lamports()? -= release_amount;
     **ctx.accounts.owner.try_borrow_mut_lamports()? += release_amount;

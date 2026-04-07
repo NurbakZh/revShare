@@ -43,6 +43,7 @@ export type DecodedBusinessPool = {
     tokenPrice: Bn
     currentEpoch: Bn
     totalDistributed: Bn
+    totalRevenue: Bn
     isDefaulted: boolean
     raiseLimit: Bn
     fundsReleased: Bn

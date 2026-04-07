@@ -17,7 +17,7 @@ pub struct ListTokens<'info> {
     pub token_mint: Account<'info, Mint>,
 
     #[account(
-        init,
+        init_if_needed,
         payer = seller,
         space = TokenListing::LEN,
         seeds = [b"listing", business_pool.key().as_ref(), seller.key().as_ref()],

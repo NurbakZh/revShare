@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using oracle.DTOs;
 using oracle.Services.Interfaces;
 
 namespace oracle.Controllers;
@@ -23,5 +24,28 @@ public class MarketplaceController(IMarketplaceService marketplaceService) : Con
     {
         var result = await _marketplaceService.GetByBusinessAsync(businessPubkey, ct);
         return Ok(result);
+    }
+
+    [HttpPost("listings")]
+    public async Task<IActionResult> RegisterListing(
+        [FromBody] RegisterListingDto dto,
+        CancellationToken ct)
+    {
+        var result = await _marketplaceService.RegisterListingAsync(dto, ct);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpDelete("listings/{listingPubkey}")]
+    public async Task<IActionResult> CancelListing(string listingPubkey, CancellationToken ct)
+    {
+        var result = await _marketplaceService.CancelListingAsync(listingPubkey, ct);
+        return result.Success ? Ok(result) : NotFound(result);
+    }
+
+    [HttpPost("listings/{listingPubkey}/sold")]
+    public async Task<IActionResult> MarkSold(string listingPubkey, CancellationToken ct)
+    {
+        var result = await _marketplaceService.MarkSoldAsync(listingPubkey, ct);
+        return result.Success ? Ok(result) : NotFound(result);
     }
 }

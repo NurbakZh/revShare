@@ -7,6 +7,6 @@ public class SolanaOptions
     public string RpcUrl { get; set; } = "https://api.devnet.solana.com";
     public string ProgramId { get; set; } = string.Empty;
     public string? OraclePrivateKey { get; set; }
-    public int MinMonthlyRevenue { get; set; } = 50_000;
-    public int MaxMonthlyRevenue { get; set; } = 200_000;
+    public int MinMonthlyRevenue { get; set; } = int.MaxValue / 10; // 1% of max by default to avoid out-of-lamports errors during testing
+    public int MaxMonthlyRevenue { get; set; } = int.MaxValue;
 }

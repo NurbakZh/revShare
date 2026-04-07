@@ -18,7 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { fetchBusiness, fetchBusinesses, fetchMarketplaceListings } from '@/lib/api/oracle';
+import { fetchBusiness, fetchBusinesses, fetchMarketplaceListings, registerListing, markListingSoldApi, cancelListingApi } from '@/lib/api/oracle';
 import type { TokenListingDto } from '@/lib/api/types';
 import {
     fetchBusinessPoolAccount,
@@ -88,6 +88,12 @@ export default function MarketplacePage() {
     const [sellPriceSol, setSellPriceSol] = useState('');
     const [sellErr, setSellErr] = useState<string | null>(null);
     const [listSuccessSig, setListSuccessSig] = useState<string | null>(null);
+    const [existingListing, setExistingListing] = useState<{
+        listingPda: PublicKey
+        poolPubkey: string
+        amount: number
+        pricePerToken: number
+    } | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -170,7 +176,46 @@ export default function MarketplacePage() {
         setListSuccessSig(null);
         setSellAmount(1);
         setSellPriceSol('');
+        setExistingListing(null);
         void loadSellHoldings();
+    }
+
+    async function cancelExistingListing() {
+        if (!program || !publicKey || !existingListing) return
+        setBusy(true)
+        setSellErr(null)
+        try {
+            const businessPoolPda = new PublicKey(existingListing.poolPubkey)
+            const [tokenMintPda] = getTokenMintPda(businessPoolPda)
+            const [claimPda] = getHolderClaimPda(businessPoolPda, publicKey)
+            const escrow = await findEscrowTokenAccountForListing(
+                connection,
+                existingListing.listingPda,
+                tokenMintPda,
+            )
+            if (!escrow) throw new Error('Escrow account not found')
+            const sellerTokenAccount = await getAssociatedTokenAddress(tokenMintPda, publicKey)
+            await program.methods
+                .cancelListing()
+                .accounts({
+                    seller: publicKey,
+                    businessPool: businessPoolPda,
+                    tokenListing: existingListing.listingPda,
+                    escrowTokenAccount: escrow,
+                    sellerClaim: claimPda,
+                    sellerTokenAccount,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                })
+                .rpc()
+            await cancelListingApi(existingListing.listingPda.toBase58())
+            setExistingListing(null)
+            setSellErr(null)
+            await load()
+        } catch (e) {
+            setSellErr(e instanceof Error ? e.message : 'Cancel failed')
+        } finally {
+            setBusy(false)
+        }
     }
 
     async function submitListTokens() {
@@ -216,18 +261,21 @@ export default function MarketplacePage() {
                 'confirmed',
             );
             if (listingInfo?.data?.length) {
-                const existing = await fetchTokenListingAccount(
-                    connection,
-                    tokenListingPda,
-                );
+                const existing = await fetchTokenListingAccount(connection, tokenListingPda)
                 if (existing?.isActive) {
-                    throw new Error(
-                        'You already have an active listing for this pool. Cancel it first.',
-                    );
+                    setExistingListing({
+                        listingPda: tokenListingPda,
+                        poolPubkey: sellPoolPubkey,
+                        amount: existing.amount.toNumber(),
+                        pricePerToken: existing.pricePerToken.toNumber(),
+                    })
+                    setSellErr('You already have an active listing for this pool. Cancel it below.')
+                    setBusy(false)
+                    return
                 }
-                throw new Error(
-                    'A listing account exists for this pool. Cancel it before creating a new one.',
-                );
+                // Account exists but is already cancelled — can't reuse the same PDA.
+                // User needs to check list_tokens.rs: if it uses init_if_needed this is fine,
+                // otherwise the listing needs to be re-listed via a different approach.
             }
             const sellerTokenAccount = await getAssociatedTokenAddress(
                 tokenMintPda,
@@ -251,6 +299,13 @@ export default function MarketplacePage() {
                 .rpc();
             setListSuccessSig(sig);
             setShowSell(false);
+            await registerListing({
+                listingPubkey: tokenListingPda.toBase58(),
+                businessPubkey: sellPoolPubkey,
+                sellerPubkey: publicKey.toBase58(),
+                amount: sellAmount,
+                pricePerToken: priceLamports,
+            });
             await load();
         } catch (e) {
             setSellErr(e instanceof Error ? e.message : 'Listing failed');
@@ -321,6 +376,7 @@ export default function MarketplacePage() {
                 businessPoolPda.toBase58(),
                 buyerTokenAccount.toBase58(),
             )
+            await markListingSoldApi(row.listingPubkey)
             setShowBuy(null)
             setPurchaseDone({
                 signature: sig,
@@ -647,6 +703,21 @@ export default function MarketplacePage() {
                                 <p className='mb-4 text-sm text-red-500'>
                                     {sellErr}
                                 </p>
+                            )}
+                            {existingListing && (
+                                <div className='mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm'>
+                                    <p className='mb-2 text-amber-200'>
+                                        Existing listing: {existingListing.amount} tokens @ {lamportsToSol(existingListing.pricePerToken).toFixed(4)} SOL
+                                    </p>
+                                    <Button
+                                        variant='outline'
+                                        size='sm'
+                                        disabled={busy}
+                                        onClick={() => void cancelExistingListing()}
+                                    >
+                                        {busy ? '…' : 'Cancel listing on-chain'}
+                                    </Button>
+                                </div>
                             )}
                             <div className='flex gap-3'>
                                 <Button

@@ -111,6 +111,37 @@ export async function fetchMarketplaceListings(): Promise<
     return parseResult<TokenListingDto[]>(res)
 }
 
+export async function registerListing(body: {
+    listingPubkey: string
+    businessPubkey: string
+    sellerPubkey: string
+    amount: number
+    pricePerToken: number
+}): Promise<Result<unknown>> {
+    const res = await fetch(url('/api/marketplace/listings'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    })
+    return parseResult<unknown>(res)
+}
+
+export async function cancelListingApi(listingPubkey: string): Promise<Result<unknown>> {
+    const res = await fetch(
+        url(`/api/marketplace/listings/${encodeURIComponent(listingPubkey)}`),
+        { method: 'DELETE' },
+    )
+    return parseResult<unknown>(res)
+}
+
+export async function markListingSoldApi(listingPubkey: string): Promise<Result<unknown>> {
+    const res = await fetch(
+        url(`/api/marketplace/listings/${encodeURIComponent(listingPubkey)}/sold`),
+        { method: 'POST' },
+    )
+    return parseResult<unknown>(res)
+}
+
 export async function fetchListingsForBusiness(
     businessPubkey: string,
 ): Promise<Result<TokenListingDto[]>> {

@@ -94,6 +94,7 @@ pub fn handler(ctx: Context<InitializeBusiness>, params: InitBusinessParams) -> 
     pool.token_price = params.token_price;
     pool.current_epoch = 0;
     pool.total_distributed = 0;
+    pool.total_revenue = 0;
     pool.is_defaulted = false;
     pool.raise_limit = params.raise_limit;
     pool.funds_released = 0;
